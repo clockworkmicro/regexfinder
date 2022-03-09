@@ -58,6 +58,7 @@ An \textit{alphabet} is a set of characters, and a \textit{string} or \textit{wo
 
 \begin{definition}
 A regular expression is \textit{simple} if it is a class followed by a quantifier or if it is an or statement. 
+The symbol $\epsilon$ is the empty string and is used as a placeholder.
 \end{definition}
 
 \begin{definition}
@@ -90,6 +91,34 @@ so that the $\phi$-minimal regular expression depends on the value of $\alpha$.
 We only work with ASCII characters 32-126, so a set of characters can be represented as a vector of zeros and ones of length 94 and passed to a function with the parameter $\alpha$ to return a $\phi$-minimizing regular expression.
 
 
+\subsection{Handling longer strings}
+
+Now consider $n$ strings of length at most $N$. We arrange each word as a row in a table with one letter in each column, and words that have length less than $N$ are padded with $\epsilon$. 
+The table for the set $\{house, mouse, cat\}$ is
+
+\begin{equation}
+\begin{tabular}{lllll}
+h & o & u & s       & e       \\
+m & o & u & s       & e       \\
+c & a & t & $\epsilon$ & $\epsilon$ \\
+  &   &   &         &        
+\end{tabular}
+\end{equation}
+
+
+We view each column as a set and then use the Length 1 Case to determine a regular expression composed only of classes for each column. That is if $(c_1|c_2)$ is the $\phi$-optimal regular expression for a column, where $c_1$ and $c_2$ are classes, we record these as two separate classes. 
+We now have $N$ columns and for each column we have at least one class. 
+We create a rooted tree with an empty root and a vertex from the root to each class in the first column. 
+A vertex then connects each class in column $i$ with each class in column $i+1$ such that a word in the set exists with a character from the class in column $i$ followed by a character from the class in column $i+1$. 
+Any word in the set can now be created by following a path along the tree. 
+
+
+\subsection{Reconstructing a Regular Expression from the Tree}
+We apply the following rules to the tree to simplify it. 
+
+\subsection{Reducing the $\phi$-value of the Tree}
+
+The original tree is in general not $\phi$-optimal.
 \end{document}  
 
 
