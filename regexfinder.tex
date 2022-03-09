@@ -1,0 +1,108 @@
+\documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
+\usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+%\geometry{landscape}                		% Activate for rotated page geometry
+%\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
+								% TeX will automatically convert eps --> pdf in pdflatex		
+\usepackage{amssymb}
+\usepackage{amsthm}
+\theoremstyle{definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+\newcommand{\dre}{$\backslash \textnormal{d}$ }
+\newcommand{\D}{$\backslash \textnormal{D}$ }
+\newcommand{\w}{$\backslash \textnormal{w}$ }
+\newcommand{\W}{$\backslash \textnormal{W}$ }
+\newcommand{\ent}{$ \textnormal{ent}$ }
+\newcommand{\K}{$ \textnormal{K}$ }
+\newcommand{\entropy}{$ent$ }
+
+
+%SetFonts
+
+%SetFonts
+
+
+\title{Finding Regular Expressions Given a Set of Strings}
+\author{Brendan Farrell}
+
+
+\begin{document}
+\maketitle
+
+\section{Main Idea}
+
+We view a regular expression as a description for a set of strings and propose an approach to determine a regular expression for a given set of strings. 
+An analogy for this task to be determine a curve around a set of points where one must balance two criteria: the size of the set should not be too large, yet the boundary should not be too complicated. 
+
+
+\begin{definition}
+An \textit{alphabet} is a set of characters, and a \textit{string} or \textit{word} is a finite sequence of characters. A \textit{regular expression} is a description of a set of strings according to a certain format. We use the following formats, which are from the python language but do not include all options available in python:
+\begin{enumerate}
+    \item Our alphabet is the ASCII characters 32-126, i.e. digits, uppercase and lowercase letters and punctuations. 
+    \item A \textit{class} is a set of characters that is written in one of the following ways:
+   \begin{enumerate}
+   \item any character is denoted by a period (".").
+   \item a single character, e.g. 'b'
+   \item a set of ranges within the ASCII ordering, e.g. [a-m!-\%] is characters 97-109 and 33-37.
+   \item the specific classes  \dre (all digits), \D (all non-digits), \w (all word characters: a-z,A-Z,0-9,\_) , \W (all non-word characters, i.e. punctuation)
+   \end{enumerate}
+   \item A class is followed by a \textit{quantifier}. When no quantifier is written, the number of elements from the class is 1. The quantifier * means zero or more; ? means zero or one; + means one or more; \{k,\} means at least k; \{,k\} means up to k; and \{k,l\} means at least k and no more than l.
+   \item The statement $RE_1|\cdots |RE_k$ means  $RE_1$...or...$RE_k$ and will be called an \textit{or statement} Parentheses are put around an or statement when it is concatenated with another statement.
+   \item We will not use any other regex symbols, e.g. the symbol $\hat{}$ (not), $\backslash \textnormal{b}$ (beginning or end of a word),  or $\backslash \textnormal{s}$ (any white space), etc.
+\end{enumerate}
+\end{definition}
+
+
+\begin{definition}
+A regular expression is \textit{simple} if it is a class followed by a quantifier or if it is an or statement. 
+\end{definition}
+
+\begin{definition}
+The \textit{entropy} of a regular expression is the $log_2$ of the number of strings that satisfy the regular expression and is denoted \entropy. The \textit{complexity} of the regular expression is the length of the regular expression, i.e. the total number of characters required to  write the regular expression and is denoted \K. 
+The function $\phi$ on regular expressions is 
+\begin{equation}
+\phi(RE) = ent(RE) +\alpha K(RE),
+\end{equation}
+where $\alpha\in(0,\infty)$ (generally $(0,1]$) is a weight.
+\end{definition}
+
+Given a set of strings, we will determine a regular expression that all of the strings satisfy and that has minimal $\phi$-value. 
+The entropy is the size of the regular expression, and the complexity is how complicated it is. 
+The complexity is based on Kolmogorov entropy, hence the letter $K$, but is somewhat different. 
+Kolmogorov complexity of a string is the length of the shortest computer program that can write the string. 
+Here, we only consider the shortest regular expression that can describe a set; that is we only allow specific ways of describing the sets. 
+
+%\subsection{}
+
+\section{Details}
+
+\subsection{The Length 1 case}
+
+We start by looking at strings of length 1. Let  $S$ be the set of all characters appearing in a set of words of length 1. 
+Given $\alpha$, a function exists that returns a $\phi$-minimizing regular expression for any set $S$. 
+For example, if $S = \{0,2,4,6,8\}$, then two possible regular expressions are $r_1 = [02468]$ and $r_2 = $ \dre. 
+The $\phi$ values of these are $\phi(r_1) = log_2(5) + \alpha 7$ and $\phi(r_2) = log_2(10) + \alpha 2$, 
+so that the $\phi$-minimal regular expression depends on the value of $\alpha$. 
+
+We only work with ASCII characters 32-126, so a set of characters can be represented as a vector of zeros and ones of length 94 and passed to a function with the parameter $\alpha$ to return a $\phi$-minimizing regular expression.
+
+
+\end{document}  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
