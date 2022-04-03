@@ -50,14 +50,14 @@ An \textit{alphabet} is a set of characters, and a \textit{string} or \textit{wo
    \item the specific classes  \dre (all digits), \D (all non-digits), \w (all word characters: a-z,A-Z,0-9,\_) , \W (all non-word characters, i.e. punctuation)
    \end{enumerate}
    \item A class is followed by a \textit{quantifier}. When no quantifier is written, the number of elements from the class is 1. The quantifier * means zero or more; ? means zero or one; + means one or more; \{k,\} means at least k; \{,k\} means up to k; and \{k,l\} means at least k and no more than l.
-   \item The statement $RE_1|\cdots |RE_k$ means  $RE_1$...or...$RE_k$ and will be called an \textit{or statement} Parentheses are put around an or statement when it is concatenated with another statement.
-   \item We will not use any other regex symbols, e.g. the symbol $\hat{}$ (not), $\backslash \textnormal{b}$ (beginning or end of a word),  or $\backslash \textnormal{s}$ (any white space), etc.
+   \item The statement $RE_1|\cdots |RE_k$ means  $RE_1$ or...or $RE_k$ and will be called an \textit{OR statement}. Parentheses are put around an OR statement when it is concatenated with another statement.
+   \item We will not use any other regex symbols, e.g. the symbol $\hat{}$ (not), $\backslash \textnormal{b}$ (beginning or end of a word),  or $\backslash \textnormal{s}$ (any white space), capture groups, etc.
 \end{enumerate}
 \end{definition}
 
 
 \begin{definition}
-A regular expression is \textit{simple} if it is a class followed by a quantifier or if it is an or statement. 
+A regular expression is \textit{simple} if it is a class followed by a quantifier or if it is an OR statement. 
 The symbol $\epsilon$ is the empty string and is used as a placeholder.
 \end{definition}
 
@@ -109,9 +109,11 @@ c & a & t & $\epsilon$ & $\epsilon$ \\
 We view each column as a set and then use the Length 1 Case to determine a regular expression composed only of classes for each column. That is if $(c_1|c_2)$ is the $\phi$-optimal regular expression for a column, where $c_1$ and $c_2$ are classes, we record these as two separate classes. 
 We now have $N$ columns and for each column we have at least one class. 
 We create a rooted tree with an empty root and a vertex from the root to each class in the first column. 
-A vertex then connects each class in column $i$ with each class in column $i+1$ such that a word in the set exists with a character from the class in column $i$ followed by a character from the class in column $i+1$. 
+We then connect a class in column $i$ with a class in column $i+1$ if the set contains a word with a character from the class in column $i$ followed by a character from the class in column $i+1$. 
 Any word in the set can now be created by following a path along the tree. 
 
+Note that the initial tree will, in general, be an enlargement of the set of words. 
+For example, the set of words $\{ab,ba\}$ leads to the tree $[ab]-[ba]$, which contains the words $aa$ and $bb$.
 
 \subsection{Reconstructing a Regular Expression from the Tree}
 We apply the following rules to the tree to simplify it. 
