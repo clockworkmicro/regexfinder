@@ -123,6 +123,20 @@ class NODE:
           return bool(list(matches))
       else:
          return matches
+   @property
+   def random(self):
+      if self.vector is None:
+         self.createVector()       
+      quantifier = self.classQuantList[0]['quantifier']
+      if quantifier is None:
+         return self.vector.random 
+      else:
+         mm = self.classQuantList[0]['min']
+         mM = self.classQuantList[0]['max'] 
+      if mm == mM:
+          return ''.join([self.vector.random for x in range(mm)])
+      else:
+          raise Exception('still need to fix min != max')
 
 
 class EDGE:
@@ -206,6 +220,10 @@ class VECTOR:
     @property
     def phi(self):
         return self.ent + self.alpha * self.K
+    
+    @property
+    def random(self):
+        return  chr(random.sample(list(np.where(self.v)[0]),1)[0])
 
 class ALPHABET:
    def __init__(self,alphabetList):
@@ -622,12 +640,12 @@ class GRAPH:
          for node in s:
             for descendant in self.getNodeDescendants(node):
                 nodes.add(descendant)
-         parallel.append(nodes)       
-      for nodeSet in parallel:
-         if len(parallel) == 1:
-            self.parallelGraphs = None
-         else: 
-            self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
+         parallel.append(nodes) 
+      if len(parallel) == 1:
+         self.parallelGraphs = None
+      else: 
+         for nodeSet in parallel:
+             self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
       
       
             
@@ -722,3 +740,18 @@ class GRAPH:
    @property
    def phi(self):
        return round(np.log2(self.cardinality),4) + self.alpha * self.K
+   
+   @property
+   def random(self):
+        if self.parallelGraphs:
+            weights = [subG.cardinality for subG in self.parallelGraphs]
+            subG = random.choices(self.parallelGraphs,weights)[0]
+            return subG.random
+        elif self.sequentialGraphs:
+            return ''.join([subG.random for subG in self.sequentialGraphs])
+        else:
+            k = list(self.nodes.keys())[0]  
+            node = self.nodes[k]
+            if not node.vector:
+                node.random
+            return node.random
