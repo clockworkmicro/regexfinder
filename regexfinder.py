@@ -7,20 +7,30 @@ import more_itertools as mit
 import random
 
 
-from utils import strCounter, getClassQuantList, getParenthesesSegments,getTopOrSegments,partitionClass, topOrExists
+from utils import flatten, strCounter, getClassQuantList, getParenthesesSegments,getTopOrSegments,partitionClass, topOrExists
 
 class NODE:
-   def __init__(self,regex,replaced=False,simple=False,alpha=1):
-      self.node = None
+   def __init__(self,regex=None,vector = None,replaced=False,simple=False,alpha=1):
+       
+      if not regex and not vector:
+          raise Exception('Either regex or vector required.')
+      
       self.alpha = alpha
       self.regex = regex
+      self.vector = vector 
       self.id_ = next(strCounter)
-      self.removeOuterParentheses()
-      self.replaced = replaced
       self.reduced = False
-      self.vector = None
-      self.classQuantList = getClassQuantList(self.regex)
+      self.replaced = replaced
 
+      if not self.regex:
+         self.regex = self.vector.regex
+         
+      self.removeOuterParentheses()
+      self.classQuantList = getClassQuantList(self.regex)         
+      if self.simple:
+          self.createVector()
+      else:
+          pass
 
    @property
    def simple(self):
@@ -65,12 +75,30 @@ class NODE:
         
        elif '[' in reClass:
           pieces = partitionClass(reClass)
-          
           for piece in pieces:
             if '-' in piece:
                 start = ord(piece[0])
                 end = ord(piece[2]) + 1
                 vector[start:end] = 1
+            elif piece == '\d':
+              vector[48:58] = 1
+            
+            elif piece == '\D':
+              vector[31:47] = 1        
+              vector[59:127] = 1        
+            
+            elif piece == '\w':
+              vector[48:58] = 1
+              vector[65:91] = 1        
+              vector[95] = 1        
+              vector[97:123] = 1  
+            
+            elif piece == '\W':
+              vector[31:48] = 1
+              vector[58:65] = 1        
+              vector[91:95] = 1        
+              vector[96] =1          
+              vector[123:127] = 1 
             else:
                 vector[ord(piece)] = 1
        self.vector = VECTOR(vector,self.alpha) 
@@ -155,6 +183,7 @@ class VECTOR:
         toReturn = ''
         for subList in self.consecutiveSublists:
            subList = [chr(x) for x in subList]
+
            if len(subList) == 0:
              pass
            elif len(subList) == 1:
@@ -164,6 +193,9 @@ class VECTOR:
              toReturn += subList[0]
              toReturn += subList[1]
              toReturn += ']'  
+             
+           elif subList[0] == '0' and subList[-1] == '9':
+               toReturn = '\d'
            else:
              toReturn += '['  
              toReturn += subList[0]
@@ -330,7 +362,6 @@ class GRAPH:
 
       else:
         pass
-    
 
       if self.regex:
          self.startNode = NODE(self.regex)
@@ -345,8 +376,12 @@ class GRAPH:
          self.sequentialPartition()
       else:
          self.sequentialGraphs = None
-    
-    
+         
+   def copy(self): 
+       ###### need to deep copy regex and alpha
+       return GRAPH(regex=self.regex if self.regex else None,wordList=self.wordList.copy() if self.wordList else None,nodes=self.nodes.copy() if self.nodes else None,edges=self.edges.copy() if self.edges else None,alpha=self.alpha)
+       
+       
    def addNode(self,node):
       if node.id_ in self.nodes.keys():
             raise Exception('Node key already exists')
@@ -375,6 +410,12 @@ class GRAPH:
 
    def getChildren(self,id_):
       return [x.child for x in self.edges if x.parent == id_]   
+  
+   def getSiblings(self,id_):
+       if not self.getParents(id_):
+          return self.getNodesNoParents()
+       else:
+          return sorted(list(set(flatten([self.getChildren(parent) for parent in self.getParents(id_)]))))
 
    def getNodesNoChildren(self):
       return [x for x in self.nodes.values() if not self.getChildren(x.id_)]
@@ -531,10 +572,13 @@ class GRAPH:
     
       for key,node in self.nodes.items():
          if not node.replaced:
+            print(node.regex) 
             if node.regex[0] == '\\':
                display = '\\'+node.regex
             else:
+                
                display = node.regex
+            print(display)   
             dot.node(str(node.id_),display)
       
       #for id_ in self.getNodesNoParents():
@@ -755,3 +799,14 @@ class GRAPH:
             if not node.vector:
                 node.random
             return node.random
+        
+   def joinNodes(self,nodeList):
+       #print(nodeList) 
+       M = np.array([self.nodes[node_].vector.v for node_ in nodeList])
+       print(M)
+       bool_ = [int(bool(x)) for x in sum(M)]
+       print(bool_)
+       #print(len(bool_))
+       return bool_
+       #newNode = NODE(vector=VECTOR(bool_))
+       #return newNode

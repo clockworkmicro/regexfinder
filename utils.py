@@ -106,8 +106,12 @@ def getClassQuantList(inString):
     return toReturn
 
 def partitionClass(inString):
-    #matches = re.finditer(r"(\w-\w)|\w",inString)
-   
-    matches = re.finditer(r" ([^\[\]]-[^\[\]])|[^\[\]]",inString)
+    # partitions a class , i.e. [....] into pieces
+    #20220630
+    #matches = re.finditer(r"([^\[\]]-[^\[\]])|[^\[\]]",inString)
+    matches = re.finditer(r"(\\d|\\D|\\w|\\W)|([^\[\]]-[^\[\]])|(?<!-)[^-\[\]](?!-)",inString)
     matches = list(matches)
     return [match.group() for match in matches]
+
+def flatten(x):
+    return [y for z in x for y in z]      
