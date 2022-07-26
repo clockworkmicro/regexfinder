@@ -569,16 +569,10 @@ class GRAPH:
    def createVisual(self):
       dot = Digraph()
       #dot.node('',shape='point') 
-    
       for key,node in self.nodes.items():
          if not node.replaced:
-            print(node.regex) 
-            if node.regex[0] == '\\':
-               display = '\\'+node.regex
-            else:
-                
-               display = node.regex
-            print(display)   
+            display = ''.join([r'\\' if x == '\\' else x for x in node.regex])
+
             dot.node(str(node.id_),display)
       
       #for id_ in self.getNodesNoParents():
@@ -803,10 +797,7 @@ class GRAPH:
    def joinNodes(self,nodeList):
        #print(nodeList) 
        M = np.array([self.nodes[node_].vector.v for node_ in nodeList])
-       print(M)
        bool_ = [int(bool(x)) for x in sum(M)]
-       print(bool_)
-       #print(len(bool_))
        return bool_
        #newNode = NODE(vector=VECTOR(bool_))
        #return newNode
