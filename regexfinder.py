@@ -11,9 +11,11 @@ from utils import flatten, strCounter, getClassQuantList, getParenthesesSegments
 
 class NODE:
    def __init__(self,regex=None,vector = None,replaced=False,simple=False,alpha=1):
-       
-      if not regex and not vector:
+      
+      if regex is None and vector is None:
           raise Exception('Either regex or vector required.')
+          
+
       
       self.alpha = alpha
       self.regex = regex
@@ -22,7 +24,7 @@ class NODE:
       self.reduced = False
       self.replaced = replaced
 
-      if not self.regex:
+      if self.regex is None:
          self.regex = self.vector.regex
          
       self.removeOuterParentheses()
@@ -105,7 +107,7 @@ class NODE:
 
    def reduce(self):
        if not self.simple:
-           raise Exception('Not is not simple. A node cannot be reduced if it is not simple.')
+           raise Exception('Node is not simple. A node cannot be reduced if it is not simple.')
        else:
            if not self.vector:
                self.createVector()
@@ -180,28 +182,29 @@ class VECTOR:
 
     @property
     def regex(self):
-        toReturn = ''
+        
+        if not self.consecutiveSublists:
+            raise Exception('Vector has no nonzero values.')
+        else:
+            pass
+        toReturn = '['
         for subList in self.consecutiveSublists:
+            
            subList = [chr(x) for x in subList]
-
-           if len(subList) == 0:
-             pass
-           elif len(subList) == 1:
+           
+           if len(subList) == 1:
              toReturn += subList[0]
            elif len(subList) == 2:
-             toReturn += '['  
              toReturn += subList[0]
              toReturn += subList[1]
-             toReturn += ']'  
              
            elif subList[0] == '0' and subList[-1] == '9':
-               toReturn = '\d'
+               toReturn += '\d'
            else:
-             toReturn += '['  
              toReturn += subList[0]
              toReturn += '-'
              toReturn += subList[-1]
-             toReturn += ']'  
+        toReturn += ']'
         return toReturn
         
         
@@ -794,10 +797,3 @@ class GRAPH:
                 node.random
             return node.random
         
-   def joinNodes(self,nodeList):
-       #print(nodeList) 
-       M = np.array([self.nodes[node_].vector.v for node_ in nodeList])
-       bool_ = [int(bool(x)) for x in sum(M)]
-       return bool_
-       #newNode = NODE(vector=VECTOR(bool_))
-       #return newNode
