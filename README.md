@@ -37,3 +37,7 @@ r'\d{2}([a-m]{2}[n-z]{2}|[A-Z]{4})\d'
 is represented as:
 
 ![](/images/exampleGraph1.png)
+
+
+
+
