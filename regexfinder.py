@@ -688,7 +688,14 @@ class GRAPH:
          for nodeSet in parallel:
              self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
       
-      
+   def mergeNodes(self,nodeList):
+       if not set(nodeList).issubset(set(self.nodes.keys())):
+           raise Exception( 'Node list includes invalid node.')
+       
+       M = np.array([self.nodes[n].vector.v for n in nodeList] )
+       print(M)
+       newv = M.any(axis=0).astype(int)
+       return NODE(vector=VECTOR(newv))
             
    def createSubGraph(self,nodeList):
        subNodes = {}

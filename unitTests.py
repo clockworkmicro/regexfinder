@@ -12,8 +12,17 @@ class NodeTest(unittest.TestCase):
         self.assertTrue(n.simple)
                 
     def testBasicOr(self):
+         print(1)
          n = NODE('(a|b)')
          self.assertFalse(n.simple)       
+
+    def testRegexToVectorToRegex(self):
+        print(2)
+        n1 = NODE(regex='\w')
+        n2 = NODE(vector=VECTOR(n1.vector.v))
+        self.assertEqual(n1.regex,n2.regex)
+
+
         
 class VectorTest(unittest.TestCase):
 
