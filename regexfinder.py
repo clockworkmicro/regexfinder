@@ -189,7 +189,6 @@ class VECTOR:
             pass
         toReturn = '['
         for subList in self.consecutiveSublists:
-            
            subList = [chr(x) for x in subList]
            
            if len(subList) == 1:
@@ -205,7 +204,9 @@ class VECTOR:
              toReturn += '-'
              toReturn += subList[-1]
         toReturn += ']'
-        return toReturn
+        if toReturn == '[\\dA-Z_a-z]':
+           toReturn = '[\\w]'
+        return toReturn 
         
         
         
