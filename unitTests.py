@@ -31,10 +31,6 @@ class NodeTest(unittest.TestCase):
         self.assertEqual(n1.regex,n2.regex)
         
     
-
-    def test1regex(self):
-        n = NODE('\d')
-        self.assertEqual(n.cardinality,10, "Should be 1")
     # def test2regex(self):
     #     n = NODE(' ')
     #     self.assertEqual(n.cardinality,63, "Should be 63")
