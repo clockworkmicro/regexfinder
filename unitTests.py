@@ -30,6 +30,28 @@ class NodeTest(unittest.TestCase):
         n2 = NODE(vector=VECTOR(n1.vector.v))
         self.assertEqual(n1.regex,n2.regex)
         
+    
+
+    def test1regex(self):
+        n = NODE('\d')
+        self.assertEqual(n.cardinality,10, "Should be 1")
+    # def test2regex(self):
+    #     n = NODE(' ')
+    #     self.assertEqual(n.cardinality,63, "Should be 63")
+    def test3regex(self):
+        n = NODE('[a-z]')
+        self.assertEqual(n.cardinality,26, "Should be 26")
+    def test4regex(self):
+        n = NODE('[A-Z]')
+        self.assertEqual(n.cardinality,26, "Should be 63")
+    def test5regex(self):
+        n = NODE('\d')
+        self.assertEqual(n.cardinality,10, "Should be 63")
+    def test6regex(self):
+        n = NODE('\w')
+        self.assertEqual(n.cardinality,63, "Should be 63")
+        
+        
 class VectorTest(unittest.TestCase):
     
     def testVerySimple(self):
