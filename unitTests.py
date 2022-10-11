@@ -31,12 +31,14 @@ class NodeTest(unittest.TestCase):
         self.assertEqual(n1.regex,n2.regex)
         
     
+        
+    
     # def test2regex(self):
     #     n = NODE(' ')
     #     self.assertEqual(n.cardinality,63, "Should be 63")
     def test3regex(self):
-        n = NODE('[a-z]')
-        self.assertEqual(n.cardinality,26, "Should be 26")
+        n = NODE('abcd')
+        self.assertEqual(n.cardinality,1, "Should be 1")
     def test4regex(self):
         n = NODE('[A-Z]')
         self.assertEqual(n.cardinality,26, "Should be 63")
@@ -46,6 +48,9 @@ class NodeTest(unittest.TestCase):
     def test6regex(self):
         n = NODE('\w')
         self.assertEqual(n.cardinality,63, "Should be 63")
+    def test7regex(self):
+        n = NODE('\d{2,4}')
+        self.assertEqual(n.cardinality, 11100, "IDK")
         
         
 class VectorTest(unittest.TestCase):
