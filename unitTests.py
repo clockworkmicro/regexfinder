@@ -1,6 +1,6 @@
 import unittest
 
-from regexfinder import NODE, VECTOR
+from regexfinder import GRAPH, NODE, VECTOR
 
 class NodeTest(unittest.TestCase):
 
@@ -50,7 +50,7 @@ class NodeTest(unittest.TestCase):
         self.assertEqual(n.cardinality,63, "Should be 63")
     def test7regex(self):
         n = NODE('\d{2,4}')
-        self.assertEqual(n.cardinality, 11100, "IDK")
+        self.assertEqual(n.cardinality, 11100, "Should be 11100")
         
         
 class VectorTest(unittest.TestCase):
@@ -108,6 +108,12 @@ class VectorTest(unittest.TestCase):
        vector = VECTOR(v) 
        self.assertEqual(vector.regex,'[\\w]')
        self.assertListEqual(vector.support.tolist(), indices)
+       
+class GraphTest(unittest.TestCase):
+    
+    def graphTest1(self):
+        g1 = GRAPH(regex='[abc]')
+        self.assertEqual(g1.regex, '[abd]', "should be abc")
 
 if __name__ == '__main__':
     unittest.main()
