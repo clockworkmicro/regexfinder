@@ -15,7 +15,6 @@ class NODE:
       if regex is None and vector is None:
           raise Exception('Either regex or vector required.')
           
-
       
       self.alpha = alpha
       self.regex = regex
