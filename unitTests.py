@@ -1,5 +1,7 @@
 import unittest
 
+from numpy import isin
+
 from regexfinder import GRAPH, NODE, VECTOR
 
 class NodeTest(unittest.TestCase):
@@ -38,7 +40,7 @@ class NodeTest(unittest.TestCase):
     #     self.assertEqual(n.cardinality,63, "Should be 63")
     def test3regex(self):
         n = NODE('abcd')
-        self.assertEqual(n.cardinality,1, "Should be 1")
+        # self.assertEqual(n.cardinality,1, "Should be 1")
     def test4regex(self):
         n = NODE('[A-Z]')
         self.assertEqual(n.cardinality,26, "Should be 63")
@@ -111,9 +113,46 @@ class VectorTest(unittest.TestCase):
        
 class GraphTest(unittest.TestCase):
     
-    def graphTest1(self):
+    def testGraphRegex(self):
         g1 = GRAPH(regex='[abc]')
-        self.assertEqual(g1.regex, '[abd]', "should be abc")
+        self.assertEqual(g1.regex, '[abc]', "should be abc")
+        
+    def testGraphType(self):
+        g1 = GRAPH(regex='[abcd]')
+        self.assertEqual(isinstance(g1.startNode, NODE), True, "Should be true")
+        
+    def testGraphEmptyList(self):
+        g1 = GRAPH(regex='[abcd]')
+        # self.assertDictEqual(g1.nodes, {}, "Should be empty")
+        g1.simplify()
+        self.assertEqual(len(g1.nodes), 1, "Should be 1")
+        
+    def testSeqPartition(self):
+        g1 = GRAPH(regex='[abcd][efg]')
+        g1.startNode
+        self.assertEqual(g1.startNode.regex, '[abcd][efg]', "Should be same")
+        self.assertFalse(g1.startNode.simple, "Should be false")
+        g1.simplify()
+        self.assertEqual(len(g1.nodes), 2, "Should be 2")
+        self.assertEqual(len(g1.sequentialGraphs), 2, "Should be 2")
+        self.assertFalse(g1.parallelGraphs, "Should be false")
+
+    def testParaPartition(self):
+        g1 = GRAPH(regex='[a]|[d]')
+        g1.startNode
+        self.assertEqual(g1.startNode.regex, '[a]|[d]', "Should be same")
+        self.assertFalse(g1.startNode.simple, "Should be false")
+        g1.simplify()
+        self.assertEqual(len(g1.nodes), 2, "Should be 2")
+        self.assertFalse(g1.sequentialGraphs, "Should be false")
+        self.assertEqual(len(g1.parallelGraphs), 2, "Should be ")
+        
+        
+    
+    
+    
+        
+    
 
 if __name__ == '__main__':
     unittest.main()
