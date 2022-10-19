@@ -145,7 +145,7 @@ class GraphTest(unittest.TestCase):
         g1.simplify()
         self.assertEqual(len(g1.nodes), 2, "Should be 2")
         self.assertFalse(g1.sequentialGraphs, "Should be false")
-        self.assertEqual(len(g1.parallelGraphs), 2, "Should be ")
+        self.assertEqual(len(g1.parallelGraphs), 2, "Should be 2")
         
         
         
