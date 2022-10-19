@@ -15,7 +15,6 @@ class NODE:
       if regex is None and vector is None:
           raise Exception('Either regex or vector required.')
           
-
       
       self.alpha = alpha
       self.regex = regex
@@ -372,6 +371,7 @@ class GRAPH:
          self.nodes.update({self.startNode.id_ : self.startNode})
       else:
         pass
+      """ 
       self.simplify()
         
       self.parallelPartition()
@@ -380,6 +380,7 @@ class GRAPH:
          self.sequentialPartition()
       else:
          self.sequentialGraphs = None
+      """   
          
    def copy(self): 
        ###### need to deep copy regex and alpha
