@@ -371,16 +371,7 @@ class GRAPH:
          self.nodes.update({self.startNode.id_ : self.startNode})
       else:
         pass
-      """ 
-      self.simplify()
-        
-      self.parallelPartition()
-      
-      if not self.parallelGraphs and len(self.nodes)>1:
-         self.sequentialPartition()
-      else:
-         self.sequentialGraphs = None
-      """   
+
          
    def copy(self): 
        ###### need to deep copy regex and alpha
@@ -435,6 +426,12 @@ class GRAPH:
       while self.getNotSimple():
           self.process(self.getNotSimple()[0])  
       self.nodes = dict([(name,node) for name,node in self.nodes.items() if node.simple])
+      self.parallelPartition()
+      
+      if not self.parallelGraphs and len(self.nodes)>1:
+         self.sequentialPartition()
+      else:
+         self.sequentialGraphs = None
 
    def getNodeEqClasses(self):
        tempDict = {}
