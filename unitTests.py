@@ -139,13 +139,29 @@ class GraphTest(unittest.TestCase):
 
     def testParaPartition(self):
         g1 = GRAPH(regex='[a]|[d]')
-        g1.startNode
         self.assertEqual(g1.startNode.regex, '[a]|[d]', "Should be same")
         self.assertFalse(g1.startNode.simple, "Should be false")
         g1.simplify()
         self.assertEqual(len(g1.nodes), 2, "Should be 2")
         self.assertFalse(g1.sequentialGraphs, "Should be false")
         self.assertEqual(len(g1.parallelGraphs), 2, "Should be 2")
+        
+    def testDiamond(self):
+        g1 = GRAPH(regex='a(b|c)d')
+        self.assertEqual(g1.startNode.regex, 'a(b|c)d', "Should be equal")
+        # self.assertEqual(g1.cardinality, 2)
+        # self.assertEqual(g1.K, 7)
+        g1.simplify()
+        self.assertEqual(len(g1.sequentialGraphs), 3)
+        self.assertEqual(len(g1.sequentialGraphs[1].parallelGraphs), 2)
+        
+        
+        
+        
+    # def testPartitionRecursion(self):
+    #     g1 = GRAPH(regex='[a]|[b]')
+    #     g1.simplify()
+    #     self.assertEqual(g1.parallelPartition, False, "Should be false")
         
         
         
