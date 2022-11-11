@@ -427,11 +427,18 @@ class GRAPH:
           self.process(self.getNotSimple()[0])  
       self.nodes = dict([(name,node) for name,node in self.nodes.items() if node.simple])
       self.parallelPartition()
-      
+           
       if not self.parallelGraphs and len(self.nodes)>1:
          self.sequentialPartition()
       else:
          self.sequentialGraphs = None
+
+      '''
+      if self.sequentialGraphs is not None:
+          print('getnotsimple: ',[g.getNotSimple() for g in self.sequentialGraphs])
+          print('after simplify: ',[g.simplify() for g in self.sequentialGraphs])
+          self.sequentialGraphs = [g.simplify() for g in self.sequentialGraphs]
+      '''
 
    def getNodeEqClasses(self):
        tempDict = {}
