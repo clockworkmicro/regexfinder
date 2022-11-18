@@ -156,6 +156,11 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(len(g1.sequentialGraphs), 3)
         self.assertEqual(len(g1.sequentialGraphs[1].parallelGraphs), 2) # Also fails, PG
         
+    def testPartition(self):
+        g1 = GRAPH(regex='a(b|c(d|e)f)g')
+        self.assertEqual(g1.parallelGraphs, None, "SHould be none")
+        g1.partition()
+        
         
         
         

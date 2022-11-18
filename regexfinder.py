@@ -294,7 +294,7 @@ class WORDCOLLECTION:
                 self.prefixDicts.append(prefixes)
                 
             else:
-                pass
+               pass
             
             if i != self.maxLength - 1:
                 
@@ -308,7 +308,7 @@ class WORDCOLLECTION:
                 self.suffixDicts.append(suffixes)
                 
             else:
-                pass
+               pass
 
     def createClasses(self):
 
@@ -318,7 +318,7 @@ class WORDCOLLECTION:
         for i in range(1,self.maxLength-1):
 
             for k in set(list(self.prefixDicts[i].keys()) + list(self.suffixDicts[i].keys())):
-                eq[k] = (self.setToStr(self.prefixDicts[i].get(k,None)),self.setToStr(self.suffixDicts[i].get(k,None)))
+               eq[k] = (self.setToStr(self.prefixDicts[i].get(k,None)),self.setToStr(self.suffixDicts[i].get(k,None)))
                 
             # The keys of eq are the alphabet. The values are each a tuple, where the first value is a 
             # string of the prefixes and the second is a string of the suffixes.
@@ -350,10 +350,10 @@ class GRAPH:
       self.edges = []
 
       if self.regex:
-          try: 
-             re.compile(self.regex)
-          except:
-             raise Exception('Invalid argument. re.compile failed')
+         try: 
+            re.compile(self.regex)
+         except:
+            raise Exception('Invalid argument. re.compile failed')
       elif self.wordList:
          self.wordCollection = WORDCOLLECTION(self.wordList)
          self.wordCollection.createClasses()   
@@ -374,8 +374,8 @@ class GRAPH:
 
          
    def copy(self): 
-       ###### need to deep copy regex and alpha
-       return GRAPH(regex=self.regex if self.regex else None,wordList=self.wordList.copy() if self.wordList else None,nodes=self.nodes.copy() if self.nodes else None,edges=self.edges.copy() if self.edges else None,alpha=self.alpha)
+      ###### need to deep copy regex and alpha
+      return GRAPH(regex=self.regex if self.regex else None,wordList=self.wordList.copy() if self.wordList else None,nodes=self.nodes.copy() if self.nodes else None,edges=self.edges.copy() if self.edges else None,alpha=self.alpha)
        
        
    def addNode(self,node):
@@ -408,10 +408,10 @@ class GRAPH:
       return [x.child for x in self.edges if x.parent == id_]   
   
    def getSiblings(self,id_):
-       if not self.getParents(id_):
-          return self.getNodesNoParents()
-       else:
-          return sorted(list(set(flatten([self.getChildren(parent) for parent in self.getParents(id_)]))))
+      if not self.getParents(id_):
+         return self.getNodesNoParents()
+      else:
+         return sorted(list(set(flatten([self.getChildren(parent) for parent in self.getParents(id_)]))))
 
    def getNodesNoChildren(self):
       return [x for x in self.nodes.values() if not self.getChildren(x.id_)]
@@ -420,16 +420,31 @@ class GRAPH:
       return [x.id_ for x in self.nodes.values() if not self.getParents(x.id_)]    
     
    def getNotSimple(self):
-       return [id_ for id_,node in self.nodes.items() if (not node.replaced and not node.simple)]
+      return [id_ for id_,node in self.nodes.items() if (not node.replaced and not node.simple)]
 
+   def partition(self):
+      
+      if len(self.nodes)==1:
+         return
+      elif self.hasParallel():
+         self.parallelPartition
+         self.parallelGraphs=[g1.partition() for g1 in self.parallelGraphs]
+      else:
+         self.sequentialPartition()
+         self.sequentialGraphs=[g1.partition() for g1 in self.sequentialGraphs]
+
+   #
+   #TODO: Change simplify to ONLY simple nodes and not do partitioning
+   #
+   
    def simplify(self):
       while self.getNotSimple():
           self.process(self.getNotSimple()[0])  
       self.nodes = dict([(name,node) for name,node in self.nodes.items() if node.simple])
-      self.parallelPartition()
-           
+      self.partition()
+      
       if not self.parallelGraphs and len(self.nodes)>1:
-         self.sequentialPartition()
+         self.partition()
       else:
          self.sequentialGraphs = None
 
