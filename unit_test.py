@@ -152,7 +152,7 @@ class GraphTest(unittest.TestCase):
         self.assertIsInstance(g1.sequentialGraphs[0], GRAPH)
         
     def testPartitionSingleLetter(self):
-        g1 = GRAPH(regex='ab')
+        g1 = GRAPH(regex='a')
         g1.partition()
         self.assertIsInstance(g1, GRAPH)
         
