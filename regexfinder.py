@@ -422,16 +422,24 @@ class GRAPH:
    def getNotSimple(self):
       return [id_ for id_,node in self.nodes.items() if (not node.replaced and not node.simple)]
 
+   # Should only run if a graph is simplified
    def partition(self):
+      
+      self.simplify()
       
       if len(self.nodes)==1:
          return
-      elif self.hasParallel():
-         self.parallelPartition
-         self.parallelGraphs=[g1.partition() for g1 in self.parallelGraphs]
+      # elif self.hasParallel():
+      #    self.parallelGraphs=[g1.partition() for g1 in self.parallelGraphs]
       else:
-         self.sequentialPartition()
-         self.sequentialGraphs=[g1.partition() for g1 in self.sequentialGraphs]
+         self.parallelPartition()
+         if self.parallelGraphs: # is not none
+            self.parallelGraphs=[g1.partition() for g1 in self.parallelGraphs]
+         else:
+            self.sequentialPartition()
+            self.sequentialGraphs=[g1.partition() for g1 in self.sequentialGraphs]
+            
+            
 
    #
    #TODO: Change simplify to ONLY simple nodes and not do partitioning
@@ -441,12 +449,12 @@ class GRAPH:
       while self.getNotSimple():
           self.process(self.getNotSimple()[0])  
       self.nodes = dict([(name,node) for name,node in self.nodes.items() if node.simple])
-      self.partition()
       
-      if not self.parallelGraphs and len(self.nodes)>1:
-         self.partition()
-      else:
-         self.sequentialGraphs = None
+      
+      # if not self.parallelGraphs and len(self.nodes)>1:
+      #    self.partition()
+      # else:
+      #    self.sequentialGraphs = None
 
       '''
       if self.sequentialGraphs is not None:
@@ -671,8 +679,9 @@ class GRAPH:
 
              self.removeEdge(self.nodes[id_].id_,child) 
              self.addEdge(EDGE(previous,child) ) 
-
-   def parallelPartition(self):
+             
+   def getSharedDecendantSets(self):
+      
       noParents = self.getNodesNoParents()
       
       combs = list(combinations(noParents,2))
@@ -687,16 +696,22 @@ class GRAPH:
          if not disjoint:
             pairs.append([first,second])
       
-      sets = set([])
+      sharedDescendantSets = set([])
       for id_ in noParents:        
          matches = [pair for pair in pairs if id_ in pair]
          if not matches:
-            sets.add(tuple([id_]))
+            sharedDescendantSets.add(tuple([id_]))
          else:
-            
-            sets.add(tuple(set([x for y in matches for x in y])))
+            # Test if tuple is necesarry
+            sharedDescendantSets.add(tuple(set([x for y in matches for x in y])))
+      return sharedDescendantSets
+
+   def parallelPartition(self):
+      
+      sharedDescendantSets = self.getSharedDecendantSets()
+
       parallel = [] 
-      for s in sets:
+      for s in sharedDescendantSets:
             
          nodes = set(s)
          for node in s:
