@@ -1,4 +1,5 @@
 import re
+from utils import flatten
 
 def strNumberGenerator():
      number = 0

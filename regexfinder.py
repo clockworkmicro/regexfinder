@@ -464,6 +464,7 @@ class GRAPH:
       '''
 
    def getNodeEqClasses(self):
+       # two nodes are equivalent if they have the same parents and children
        tempDict = {}
        for id_ in self.nodes.keys():
           parents = tuple(sorted(self.getParents(id_)))
@@ -598,12 +599,16 @@ class GRAPH:
             
       self.columnState += 1
     
-   def createVisual(self):
+   def createVisual(self,labels=False):
       dot = Digraph()
       #dot.node('',shape='point') 
       for key,node in self.nodes.items():
          if not node.replaced:
             display = ''.join([r'\\' if x == '\\' else x for x in node.regex])
+            if labels:
+                display += '  ({key})'.format(key=key)
+            else:
+                pass
 
             dot.node(str(node.id_),display)
       

@@ -33,14 +33,9 @@ class NodeTest(unittest.TestCase):
         self.assertEqual(n1.regex,n2.regex)
         
     
-        
-    
-    # def test2regex(self):
-    #     n = NODE(' ')
-    #     self.assertEqual(n.cardinality,63, "Should be 63")
     def test3regex(self):
-        n = NODE('abcd')
-        # self.assertEqual(n.cardinality,1, "Should be 1")
+        n = NODE('a')
+        self.assertEqual(n.cardinality,1, "Should be 1")
     def test4regex(self):
         n = NODE('[A-Z]')
         self.assertEqual(n.cardinality,26, "Should be 63")
@@ -123,7 +118,6 @@ class GraphTest(unittest.TestCase):
         
     def testGraphEmptyList(self):
         g1 = GRAPH(regex='[abcd]')
-        # self.assertDictEqual(g1.nodes, {}, "Should be empty")
         g1.simplify()
         self.assertEqual(len(g1.nodes), 1, "Should be 1")
         
@@ -149,7 +143,7 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex="ab")
         g1.partition()
         self.assertEqual(len(g1.sequentialGraphs), 2)
-        self.assertIsInstance(g1.sequentialGraphs[0], GRAPH)
+        #self.assertIsInstance(g1.sequentialGraphs[0], GRAPH)
         
     def testPartitionSingleLetter(self):
         g1 = GRAPH(regex='a')
@@ -164,7 +158,7 @@ class GraphTest(unittest.TestCase):
         # self.assertEqual(g1.phi, 0) # Fails, PG
         # self.assertEqual(g1.K, 7) #Fails, PG 
         self.assertEqual(len(g1.sequentialGraphs), 3)
-        self.assertEqual(len(g1.sequentialGraphs[0].nodes, 1))
+        #self.assertEqual(len(g1.sequentialGraphs[0].nodes, 1))
         # self.assertEqual(len(g1.sequentialGraphs[1].parallelGraphs), 2) # Also fails, PG
     
     def testSharedDescendatSets(self):
@@ -174,38 +168,23 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(len(g1.nodes), 8)
         self.assertEqual(len(a), 2)
         
-        
     def testPartitionSimple(self):
         g1 = GRAPH(regex='a|b|c')
         g1.partition()
         self.assertIsInstance(g1, GRAPH)
         self.assertEqual(len(g1.parallelGraphs), 3)
         
-        
     def testPartition(self):
-        g1 = GRAPH(regex='(a(b|c(d|e)f)g)|h')
+        g1 = GRAPH(regex='(a(b|c(e|d)f)g)|h')
         g1.partition()
         self.assertEqual(len(g1.parallelGraphs), 2)
-        # g1.partition()
         
-        
-        
-        
-        
-        
-    # def testPartitionRecursion(self):
-    #     g1 = GRAPH(regex='[a]|[b]')
-    #     g1.simplify()
-    #     self.assertEqual(g1.parallelPartition, False, "Should be false")
-        
-        
-        
-        
-        
-    
-    
-    
-        
+    def testGetNodeEqClasses(self):
+        g1 = GRAPH(regex='a(e|f)(g|h)(i|j)')
+        g1.simplify()
+        eqClasses = g1.getNodeEqClasses()
+        eqClassesStrings = set([''.join(sorted([g1.nodes[n].regex for n in eqClass])) for eqClass in eqClasses])
+        self.assertSetEqual(eqClassesStrings, set(['a', 'ef', 'gh', 'ij']))
     
 
 if __name__ == '__main__':
