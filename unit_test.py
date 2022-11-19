@@ -186,7 +186,45 @@ class GraphTest(unittest.TestCase):
         eqClassesStrings = set([''.join(sorted([g1.nodes[n].regex for n in eqClass])) for eqClass in eqClasses])
         self.assertSetEqual(eqClassesStrings, set(['a', 'ef', 'gh', 'ij']))
     
+    def testTestCutSet(self):
+        g1 = GRAPH(regex='a(e|f)(g|h)(i|j)')
+        g1.simplify()
+        eqClasses = g1.getNodeEqClasses()  
+        self.assertTrue(all([g1.testCutSet(eqClass) for eqClass in eqClasses]),"All equivalence classes are cut sets")
 
+    def testGetNextCutSet(self):
+        g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
+        g1.simplify()
+        keyA = [key for key,node in g1.nodes.items() if node.regex == 'a'][0]
+        nextCutSet = g1.getNextCutSet(keyA)
+        regexVals = sorted([g1.nodes[id_].regex for id_ in nextCutSet])
+        self.assertLessEqual(regexVals,['f','g'],"The next cut set corresponds to f|g")
+        
+    def testGetNodesBetweenCutSets(self):
+        g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
+        g1.simplify()
+        firstCutSet = [key for key,node in g1.nodes.items() if node.regex == 'a']
+        nextCutSet = g1.getNextCutSet(firstCutSet[0])
+        betweenKeys = g1.getNodesBetweenCutSets(firstCutSet, nextCutSet)
+        regexVals = sorted([g1.nodes[id_].regex for id_ in betweenKeys])
+        self.assertListEqual(regexVals,['b','c','d','e'],"The next cut set corresponds to f|g")
+        
+    def testGetNodeDescendantsList(self):
+        g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
+        g1.simplify()
+        firstCutSet = [key for key,node in g1.nodes.items() if node.regex == 'a']
+        descendants = g1.getNodeDescendantsList(firstCutSet)
+        regexVals = sorted([g1.nodes[id_].regex for id_ in descendants])
+        self.assertListEqual(regexVals,['b','c','d','e','f','g','h'],"The next cut set corresponds to f|g")
+        
+    def testSequentialPartition(self):
+        g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
+        g1.simplify()
+        g1.sequentialPartition()
+        self.assertEqual(len(g1.sequentialGraphs),4)
+        
+                   
+        
 if __name__ == '__main__':
     unittest.main()
     

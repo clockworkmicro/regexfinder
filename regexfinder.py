@@ -429,39 +429,21 @@ class GRAPH:
       
       if len(self.nodes)==1:
          return
-      # elif self.hasParallel():
-      #    self.parallelGraphs=[g1.partition() for g1 in self.parallelGraphs]
+
       else:
          self.parallelPartition()
          if self.parallelGraphs: # is not none
-            self.parallelGraphs=[g1.partition() for g1 in self.parallelGraphs]
+            [g.partition() for g in self.parallelGraphs]
          else:
             self.sequentialPartition()
-            self.sequentialGraphs=[g1.partition() for g1 in self.sequentialGraphs]
-            
+            [g.partition() for g in self.sequentialGraphs]
             
 
-   #
-   #TODO: Change simplify to ONLY simple nodes and not do partitioning
-   #
-   
    def simplify(self):
       while self.getNotSimple():
           self.process(self.getNotSimple()[0])  
       self.nodes = dict([(name,node) for name,node in self.nodes.items() if node.simple])
-      
-      
-      # if not self.parallelGraphs and len(self.nodes)>1:
-      #    self.partition()
-      # else:
-      #    self.sequentialGraphs = None
 
-      '''
-      if self.sequentialGraphs is not None:
-          print('getnotsimple: ',[g.getNotSimple() for g in self.sequentialGraphs])
-          print('after simplify: ',[g.simplify() for g in self.sequentialGraphs])
-          self.sequentialGraphs = [g.simplify() for g in self.sequentialGraphs]
-      '''
 
    def getNodeEqClasses(self):
        # two nodes are equivalent if they have the same parents and children
@@ -485,6 +467,7 @@ class GRAPH:
        toReturn = []
        for id_ in inList:  
           toReturn += self.getNodeDescendants(id_)
+       toReturn = list(set(toReturn))   
        return toReturn    
 
    def getNodeAncestors(self,id_):
@@ -509,6 +492,8 @@ class GRAPH:
        return descendants 
 
 
+   # A set of nodes is a CutSet if the set of nodes union with all its ancestors
+   # and al of its descendants yields the entire graph
    def testCutSet(self,inList):
         if not all([id_ in self.nodes.keys() for id_ in inList]):
             raise Exception('Node included in inSet that is not in self.nodes.keys().')
@@ -528,6 +513,8 @@ class GRAPH:
 
 
    def getNextCutSet(self,id_):
+       if not id_ in self.nodes.keys():
+           raise Exception('Node id not not valid.')
        children = self.getChildren(id_)
        while not (children in self.getCutSets()) and children:
           newchildren = self.getChildren(children[0])
