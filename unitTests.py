@@ -149,11 +149,13 @@ class GraphTest(unittest.TestCase):
     def testDiamond(self):
         g1 = GRAPH(regex='a(b|c)d')
         self.assertEqual(g1.startNode.regex, 'a(b|c)d', "Should be equal")
-        # self.assertEqual(g1.cardinality, 2)
-        # self.assertEqual(g1.K, 7)
+        self.assertEqual(g1.cardinality, 2) # Fails due to parallell graphs
+        # self.assertEqual(g1.phi, 0) # Fails, PG
+        # self.assertEqual(g1.K, 7) #Fails, PG 
         g1.simplify()
         self.assertEqual(len(g1.sequentialGraphs), 3)
-        self.assertEqual(len(g1.sequentialGraphs[1].parallelGraphs), 2)
+        self.assertEqual(len(g1.sequentialGraphs[1].parallelGraphs), 2) # Also fails, PG
+        
         
         
         

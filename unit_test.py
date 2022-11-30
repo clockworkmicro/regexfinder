@@ -223,6 +223,22 @@ class GraphTest(unittest.TestCase):
         g1.sequentialPartition()
         self.assertEqual(len(g1.sequentialGraphs),4)
         
+    def testSubGraphs1(self):
+        g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
+        g1.simplify()
+        firstCutSet = [key for key,node in g1.nodes.items() if node.regex] # Getting the keys
+        descendants = g1.getNodeDescendantsList(firstCutSet) # Getting descendants of the very first node
+        regexVals = sorted([g1.nodes[id_].regex for id_ in descendants]) # Getting the regex of each of the now simplified nodes; sorted lexicographically
+        self.assertListEqual(regexVals, ['[yz]', '\\d', 'a', 'c', 'd{2}', 'e{3}', 'r{2}', 'v'], "This is wrong")
+        
+    def testSubGraphs2(self):
+        g1 = GRAPH(regex='a(b(c(d|e{4}f{5}|g)h{2}i|j)k)(lm|n)')
+        g1.simplify()
+        firstCutSet = [key for key,node in g1.nodes.items() if node.regex == 'a']
+        descendants = g1.getNodeDescendantsList(firstCutSet)
+        regexVals = sorted([g1.nodes[id_].regex for id_ in descendants])
+        self.assertListEqual(regexVals, ['b', 'c', 'd', 'e{4}', 'f{5}', 'g', 'h{2}', 'i', 'j', 'k', 'l', 'm', 'n'])
+        
                    
         
 if __name__ == '__main__':
