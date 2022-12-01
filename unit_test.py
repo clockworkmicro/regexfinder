@@ -234,16 +234,31 @@ class GraphTest(unittest.TestCase):
     def testPartition1(self):
         g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
         g1.partition()
-        
-        # write several tests to check recursive partitions, i.e. correct 
-        # for example, check that g1 has three sequential graphs, and that the 
-        # second of these has two parallel graphs, and that each of these has two 
-        # sequential graphs
+        self.assertEqual(3, len(g1.sequentialGraphs))
+        g2 = g1.sequentialGraphs[1]
+        g2.partition()
+        self.assertEqual(2, len(g2.parallelGraphs))
+        g3 = g2.parallelGraphs[0]
+        g3.partition()
+        self.assertEqual(2, len(g3.sequentialGraphs))
 
-
-    # Imitiate testPartition1 for the new regex
-    def testSubGraphs2(self):
+    def testPartition2(self):
         g1 = GRAPH(regex='a(b(c(d|e{4}f{5}|g)h{2}i|j)k)(lm|n)')
+        g1.partition()
+        self.assertEqual(5, len(g1.sequentialGraphs))
+        g2 = g1.sequentialGraphs[2]
+        g2.partition()
+        self.assertEqual(2, len(g2.parallelGraphs))
+        g3 = g2.parallelGraphs[0]
+        g3.partition()
+        self.assertEqual(4, len(g3.sequentialGraphs))
+        g4 = g3.sequentialGraphs[1]
+        g4.partition()
+        self.assertEqual(3, len(g4.parallelGraphs))
+        g5 = g4.parallelGraphs[0]
+        g5.partition()
+        self.assertEqual(2, len(g5.sequentialGraphs))
+        
  
                    
         
