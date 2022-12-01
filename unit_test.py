@@ -154,12 +154,26 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex='a(b|c)d')
         g1.partition()
         self.assertEqual(g1.startNode.regex, 'a(b|c)d', "Should be equal")
-        # self.assertEqual(g1.cardinality, 2) # Fails due to parallell graphs
-        # self.assertEqual(g1.phi, 0) # Fails, PG
-        # self.assertEqual(g1.K, 7) #Fails, PG 
-        self.assertEqual(len(g1.sequentialGraphs), 3)
-        #self.assertEqual(len(g1.sequentialGraphs[0].nodes, 1))
-        # self.assertEqual(len(g1.sequentialGraphs[1].parallelGraphs), 2) # Also fails, PG
+        g2 = g1.sequentialGraphs[1]
+        self.assertEqual(2, len(g2.parallelGraphs))
+        self.assertEqual(2, g2.cardinality)
+        
+    def testDiamondComplex(self):
+        g1 = GRAPH(regex='a(b(c(d|e{4}f{5}|g)h{2}i|j)k)(lm|n)')
+        g1.partition()
+        self.assertEqual(5, len(g1.sequentialGraphs))
+        g2 = g1.sequentialGraphs[2]
+        g2.partition()
+        self.assertEqual(2, len(g2.parallelGraphs))
+        g3 = g2.parallelGraphs[1]
+        g3.partition()
+        self.assertEqual(4, len(g3.sequentialGraphs))
+        g4 = g3.sequentialGraphs[1]
+        g4.partition()
+        self.assertEqual(3, len(g4.parallelGraphs))
+        g5 = g4.parallelGraphs[0]
+        g5.partition()
+        self.assertEqual(2, g5.cardinality)
     
     def testSharedDescendatSets(self):
         g1 = GRAPH(regex='(a(b|c(d|e)f)g)|h')
