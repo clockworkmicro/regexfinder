@@ -787,9 +787,9 @@ class GRAPH:
 
    @property
    def cardinality(self):
-      if hasattr(self, 'parallelGraphs'):
+      if hasattr(self, 'parallelGraphs') and self.parallelGraphs != None:
          return sum([g.cardinality for g in self.parallelGraphs])
-      elif hasattr(self, 'sequentialGraphs'):
+      elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs != None:
          return np.prod([g.cardinality for g in self.sequentialGraphs])
       else:
          k = list(self.nodes.keys())[0]  
