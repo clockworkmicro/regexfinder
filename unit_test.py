@@ -179,7 +179,7 @@ class GraphTest(unittest.TestCase):
             x+=1
             g5 = g4.parallelGraphs[x]
         g5.partition()
-        self.assertEqual(2, g5.cardinality)
+        self.assertEqual(1, g5.cardinality)
     
     def testSharedDescendatSets(self):
         g1 = GRAPH(regex='(a(b|c(d|e)f)g)|h')
@@ -276,24 +276,20 @@ class GraphTest(unittest.TestCase):
         g1.partition()
         self.assertEqual(5, len(g1.sequentialGraphs))
         g2 = g1.sequentialGraphs[2]
-        g2.partition()
         self.assertEqual(2, len(g2.parallelGraphs))
         
         # j|c(...)
         g3 = g2.parallelGraphs[0]
         if not (hasattr(g3, 'sequentialGraphs')):
             g3 = g2.parallelGraphs[1]
-        g3.partition()
         self.assertEqual(4, len(g3.sequentialGraphs))
         g4 = g3.sequentialGraphs[1]
-        g4.partition()
         self.assertEqual(3, len(g4.parallelGraphs))
         x = 0
         g5 = g4.parallelGraphs[x]
         while not hasattr(g5, 'sequentialGraphs'):
             x+=1
             g5 = g4.parallelGraphs[x]
-        g5.partition()
         self.assertEqual(2, len(g5.sequentialGraphs))
         
         # (n|lm)
@@ -303,7 +299,6 @@ class GraphTest(unittest.TestCase):
         g7 = g6.parallelGraphs[0]
         if not hasattr(g7, 'sequentialGraphs'):
             g7 = g6.parallelGraphs[1]
-        g7.partition()
         self.assertEqual(2, len(g7.sequentialGraphs))
  
                    
