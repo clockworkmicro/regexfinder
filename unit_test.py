@@ -1,8 +1,9 @@
 import unittest
 
-from numpy import isin
+import numpy as np
 
 from regexfinder import GRAPH, NODE, VECTOR
+
 
 class NodeTest(unittest.TestCase):
     ################################
@@ -144,15 +145,12 @@ class GraphTest(unittest.TestCase):
         g1.partition()
         self.assertEqual(5, len(g1.sequentialGraphs))
         g2 = g1.sequentialGraphs[2]
-        g2.partition()
         self.assertEqual(2, len(g2.parallelGraphs))
         g3 = g2.parallelGraphs[0]
         if not hasattr(g3, 'sequentialGraphs'):
             g3 = g2.parallelGraphs[1]
-        g3.partition()
         self.assertEqual(4, len(g3.sequentialGraphs))
         g4 = g3.sequentialGraphs[1]
-        g4.partition()
         self.assertEqual(3, len(g4.parallelGraphs))
         x = 0
         g5 = g4.parallelGraphs[x]
@@ -162,6 +160,56 @@ class GraphTest(unittest.TestCase):
         g5.partition()
         self.assertEqual(1, g5.cardinality)
         
+    ##################################################
+    ###     CARDINALITY, K, ENTROPY GRAPH TESTS    ###
+    ##################################################
+    def testSimpleGraphCardinality(self):
+        g1 = GRAPH(regex='a')
+        g1.partition()
+        self.assertEqual(1, g1.cardinality)
+        g2 = GRAPH(regex='abc')
+        g2.partition()
+        self.assertEqual(1, g2.cardinality)
+        g3 = GRAPH(regex='[ab]')
+        g3.partition()
+        self.assertEqual(2, g3.cardinality)
+        g4 = GRAPH(regex='a|(b[cd])')
+        g4.partition()
+        self.assertEqual(3, g4.cardinality)
+    
+    def testGraphCardinalty(self):
+        g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
+        g1.partition()
+        self.assertEqual(280, g1.cardinality)
+        g2 = GRAPH(regex='ab(c(d|e{4}f{5}|g)h{2}i|j)k(lm|n)', alpha=0.5)
+        g2.partition()
+        self.assertEqual(8, g2.cardinality)
+        self.assertEqual(3, g2.entropy)
+        self.assertEqual(19.5, g2.phi)
+    
+    def testSimpleGraphK(self):
+        g1 = GRAPH(regex='a')
+        g1.partition()
+        self.assertEqual(1, g1.K)
+        g2 = GRAPH(regex='abc')
+        g2.partition()
+        self.assertEqual(3, g2.K)
+        g3 = GRAPH(regex='[ab]')
+        g3.partition()
+        self.assertEqual(4, g3.K)
+        g4 = GRAPH(regex='a|b[cd]')
+        g4.partition()
+        self.assertEqual(7, g4.K)
+        
+    def testGraphK(self):
+        g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
+        g1.partition()
+        self.assertEqual(33, g1.K)
+        g2 = GRAPH(regex='ab(c(d|e{4}f{5}|g)h{2}i|j)k(lm|n)')
+        g2.partition()
+        self.assertEqual(33, g2.K)
+        
+    
     #################################################
     ###     NODES, DESCENDANTS, CUT SETS TESTS    ###
     #################################################

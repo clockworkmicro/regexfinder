@@ -787,31 +787,41 @@ class GRAPH:
 
    @property
    def cardinality(self):
-      if hasattr(self, 'parallelGraphs') and self.parallelGraphs != None:
+      if hasattr(self, 'parallelGraphs') and self.parallelGraphs is not None:
          return sum([g.cardinality for g in self.parallelGraphs])
-      elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs != None:
+      elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs is not None:
          return np.prod([g.cardinality for g in self.sequentialGraphs])
       else:
          k = list(self.nodes.keys())[0]  
          return self.nodes[k].cardinality
-        
+      
+   @property  
+   def entropy(self):
+      return round(np.log2(self.cardinality),4) 
+      
    @property
    def K(self):
        return len(self.outRegex)
 
    @property
-   def outRegex(self):
-      if self.parallelGraphs:
-         toReturn = "(" + "|".join([g.outRegex for g in self.parallelGraphs]) + ")"
-      elif self.sequentialGraphs:
-         toReturn = "".join([g.outRegex for g in self.sequentialGraphs])
+   def outRegexRecursive(self):
+      if hasattr(self, 'parallelGraphs') and self.parallelGraphs is not None:
+         toReturn = "(" + "|".join([g.outRegexRecursive for g in self.parallelGraphs]) + ")"
+      elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs is not None:
+         toReturn = "".join([g.outRegexRecursive for g in self.sequentialGraphs])
       else:
          k = list(self.nodes.keys())[0]  
          toReturn = self.nodes[k].regex
+      return toReturn
+      
+   @property
+   def outRegex(self):
+      toReturn = self.outRegexRecursive
       if toReturn[0] == '(' and toReturn[-1] == ')':
          return toReturn[1:-1]
       else:
          return toReturn
+      
             
    @property
    def phi(self):
@@ -819,16 +829,16 @@ class GRAPH:
    
    @property
    def random(self):
-        if self.parallelGraphs:
-            weights = [subG.cardinality for subG in self.parallelGraphs]
-            subG = random.choices(self.parallelGraphs,weights)[0]
-            return subG.random
-        elif self.sequentialGraphs:
-            return ''.join([subG.random for subG in self.sequentialGraphs])
-        else:
-            k = list(self.nodes.keys())[0]  
-            node = self.nodes[k]
-            if not node.vector:
-                node.random
-            return node.random
+      if self.parallelGraphs:
+         weights = [subG.cardinality for subG in self.parallelGraphs]
+         subG = random.choices(self.parallelGraphs,weights)[0]
+         return subG.random
+      elif self.sequentialGraphs:
+         return ''.join([subG.random for subG in self.sequentialGraphs])
+      else:
+         k = list(self.nodes.keys())[0]  
+         node = self.nodes[k]
+         if not node.vector:
+               node.random
+         return node.random
         
