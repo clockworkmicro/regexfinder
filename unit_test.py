@@ -5,8 +5,9 @@ from numpy import isin
 from regexfinder import GRAPH, NODE, VECTOR
 
 class NodeTest(unittest.TestCase):
-
-    
+    ################################
+    ###     BASIC REGEX TESTS    ###
+    ################################
     def testVerySimple(self):
         n = NODE('[abc]')
         self.assertEqual(n.regex,'[abc]')
@@ -15,8 +16,11 @@ class NodeTest(unittest.TestCase):
                 
     def testBasicOr(self):
          n = NODE('(a|b)')
-         self.assertFalse(n.simple)       
-
+         self.assertFalse(n.simple)  
+         
+    ####################################
+    ###     REGEX TO VECTOR TESTS    ###
+    ####################################
     def testRegexToVectorToRegex1(self):
         n1 = NODE(regex='[\w]')
         n2 = NODE(vector=VECTOR(n1.vector.v))
@@ -32,7 +36,9 @@ class NodeTest(unittest.TestCase):
         n2 = NODE(vector=VECTOR(n1.vector.v))
         self.assertEqual(n1.regex,n2.regex)
         
-    
+    #####################################
+    ###     NODE CARDINALITY TESTS    ###
+    #####################################
     def test3regex(self):
         n = NODE('a')
         self.assertEqual(n.cardinality,1, "Should be 1")
@@ -120,36 +126,11 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex='[abcd]')
         g1.simplify()
         self.assertEqual(len(g1.nodes), 1, "Should be 1")
+    
         
-    def testSeqPartition(self):
-        g1 = GRAPH(regex='[abcd][efg]')
-        g1.startNode
-        self.assertEqual(g1.startNode.regex, '[abcd][efg]', "Should be same")
-        self.assertFalse(g1.startNode.simple, "Should be false")
-        g1.partition()
-        self.assertEqual(len(g1.nodes), 2, "Should be 2")
-        self.assertEqual(len(g1.sequentialGraphs), 2, "Should be 2")
-        self.assertFalse(g1.parallelGraphs, "Should be false")
-
-    def testParaPartition(self):
-        g1 = GRAPH(regex='[a]|[d]')
-        self.assertEqual(g1.startNode.regex, '[a]|[d]', "Should be same")
-        self.assertFalse(g1.startNode.simple, "Should be false")
-        g1.partition()
-        self.assertEqual(len(g1.nodes), 2, "Should be 2")
-        self.assertEqual(len(g1.parallelGraphs)    , 2, "Should be 2")
-        
-    def testSequSimple(self):
-        g1 = GRAPH(regex="ab")
-        g1.partition()
-        self.assertEqual(len(g1.sequentialGraphs), 2)
-        #self.assertIsInstance(g1.sequentialGraphs[0], GRAPH)
-        
-    def testPartitionSingleLetter(self):
-        g1 = GRAPH(regex='a')
-        g1.partition()
-        self.assertIsInstance(g1, GRAPH)
-        
+    ##################################
+    ###     DIAMOND GRAPH TESTS    ###
+    ##################################   
     def testDiamond(self):
         g1 = GRAPH(regex='a(b|c)d')
         g1.partition()
@@ -180,24 +161,16 @@ class GraphTest(unittest.TestCase):
             g5 = g4.parallelGraphs[x]
         g5.partition()
         self.assertEqual(1, g5.cardinality)
-    
+        
+    #################################################
+    ###     NODES, DESCENDANTS, CUT SETS TESTS    ###
+    #################################################
     def testSharedDescendatSets(self):
         g1 = GRAPH(regex='(a(b|c(d|e)f)g)|h')
         g1.simplify()
         a = g1.getSharedDecendantSets()
         self.assertEqual(len(g1.nodes), 8)
         self.assertEqual(len(a), 2)
-        
-    def testPartitionSimple(self):
-        g1 = GRAPH(regex='a|b|c')
-        g1.partition()
-        self.assertIsInstance(g1, GRAPH)
-        self.assertEqual(len(g1.parallelGraphs), 3)
-        
-    def testPartition(self):
-        g1 = GRAPH(regex='(a(b|c(e|d)f)g)|h')
-        g1.partition()
-        self.assertEqual(len(g1.parallelGraphs), 2)
         
     def testGetNodeEqClasses(self):
         g1 = GRAPH(regex='a(e|f)(g|h)(i|j)')
@@ -237,11 +210,6 @@ class GraphTest(unittest.TestCase):
         regexVals = sorted([g1.nodes[id_].regex for id_ in descendants])
         self.assertListEqual(regexVals,['b','c','d','e','f','g','h'],"The next cut set corresponds to f|g")
         
-    def testSequentialPartition(self):
-        g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
-        g1.simplify()
-        g1.sequentialPartition()
-        self.assertEqual(len(g1.sequentialGraphs),4)
         
     def testSubGraphs1(self):
         g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
@@ -251,25 +219,74 @@ class GraphTest(unittest.TestCase):
         regexVals = sorted([g1.nodes[id_].regex for id_ in descendants]) # Getting the regex of each of the now simplified nodes; sorted lexicographically
         self.assertListEqual(regexVals, ['[yz]', '\\d', 'a', 'c', 'd{2}', 'e{3}', 'r{2}', 'v'], "This is wrong")
 
+    
+    
+    ####################################
+    ###     GRAPH PARTITION TESTS    ###
+    ####################################
+    def testPartitionSimple(self):
+        g1 = GRAPH(regex='a|b|c')
+        g1.partition()
+        self.assertIsInstance(g1, GRAPH)
+        self.assertEqual(len(g1.parallelGraphs), 3)
+        
+    def testPartition(self):
+        g1 = GRAPH(regex='(a(b|c(e|d)f)g)|h')
+        g1.partition()
+        self.assertEqual(len(g1.parallelGraphs), 2)
+        
+    def testSequentialPartition(self):
+        g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
+        g1.simplify()
+        g1.sequentialPartition()
+        self.assertEqual(len(g1.sequentialGraphs),4)
+        
+    def testSeqPartition(self):
+        g1 = GRAPH(regex='[abcd][efg]')
+        g1.startNode
+        self.assertEqual(g1.startNode.regex, '[abcd][efg]', "Should be same")
+        self.assertFalse(g1.startNode.simple, "Should be false")
+        g1.partition()
+        self.assertEqual(len(g1.nodes), 2, "Should be 2")
+        self.assertEqual(len(g1.sequentialGraphs), 2, "Should be 2")
+        self.assertFalse(g1.parallelGraphs, "Should be false")
+
+    def testParaPartition(self):
+        g1 = GRAPH(regex='[a]|[d]')
+        self.assertEqual(g1.startNode.regex, '[a]|[d]', "Should be same")
+        self.assertFalse(g1.startNode.simple, "Should be false")
+        g1.partition()
+        self.assertEqual(len(g1.nodes), 2, "Should be 2")
+        self.assertEqual(len(g1.parallelGraphs)    , 2, "Should be 2")
+        
+    def testSequSimple(self):
+        g1 = GRAPH(regex="ab")
+        g1.partition()
+        self.assertEqual(len(g1.sequentialGraphs), 2)
+        #self.assertIsInstance(g1.sequentialGraphs[0], GRAPH)
+        
+    def testPartitionSingleLetter(self):
+        g1 = GRAPH(regex='a')
+        g1.partition()
+        self.assertIsInstance(g1, GRAPH)
+
     # write several tests to check recursive partitions, i.e. correct 
     # for example, check that g1 has three sequential graphs, and that the 
     # second of these has two parallel graphs, and that each of these has two 
     # sequential graphs
 
     # Imitiate testPartition1 for the new regex
-
     def testPartition1(self):
         g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
         g1.partition()
         self.assertEqual(3, len(g1.sequentialGraphs))
         g2 = g1.sequentialGraphs[1]
-        g2.partition()
         self.assertEqual(2, len(g2.parallelGraphs))
         g3 = g2.parallelGraphs[0]
-        g3.partition()
         self.assertEqual(2, len(g3.sequentialGraphs))
         g4 = g2.parallelGraphs[1]
         self.assertEqual(2, len(g4.sequentialGraphs))
+        
 
     def testPartition2(self):
         g1 = GRAPH(regex='a(b(c(d|e{4}f{5}|g)h{2}i|j)k)(lm|n)')
@@ -294,7 +311,6 @@ class GraphTest(unittest.TestCase):
         
         # (n|lm)
         g6 = g1.sequentialGraphs[4]
-        g6.partition
         self.assertEqual(2, len(g6.parallelGraphs))
         g7 = g6.parallelGraphs[0]
         if not hasattr(g7, 'sequentialGraphs'):
