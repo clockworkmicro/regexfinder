@@ -36,6 +36,13 @@ class NODE:
    @property
    def simple(self):
         return not ('(' in self.regex or '|' in self.regex or len(self.classQuantList) > 1)
+     
+   @property
+   def getQuantifier(self):
+      if self.simple:
+         return self.classQuantList[0]['quantifier']
+      else:
+         return False
 
    @property         
    def topOrExists(self):

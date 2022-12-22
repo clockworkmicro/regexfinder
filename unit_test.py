@@ -55,6 +55,19 @@ class NodeTest(unittest.TestCase):
     def test7regex(self):
         n = NODE('\d{2,4}')
         self.assertEqual(n.cardinality, 11100, "Should be 11100")
+    
+    #####################################
+    ###     NODE QUANTIFIER TESTS    ###
+    #####################################
+    def testQuantifier(self):
+        n1 = NODE('\d{3}')
+        self.assertEqual(n1.getQuantifier, '{3}')
+        n2 = NODE('a')
+        self.assertEqual(n2.getQuantifier, None)
+        n3 = NODE('ab')
+        self.assertEqual(n3.getQuantifier, False)
+        n4 = NODE('\d{3}(ab)')
+        self.assertEqual(n4.getQuantifier, False)
         
         
 class VectorTest(unittest.TestCase):
@@ -139,6 +152,9 @@ class GraphTest(unittest.TestCase):
         g2 = g1.sequentialGraphs[1]
         self.assertEqual(2, len(g2.parallelGraphs))
         self.assertEqual(2, g2.cardinality)
+        self.assertEqual(1, g1.entropy)
+        self.assertEqual(7, g1.K)
+        self.assertEqual(8, g1.phi)
         
     def testDiamondComplex(self):
         g1 = GRAPH(regex='a(b(c(d|e{4}f{5}|g)h{2}i|j)k)(lm|n)')
@@ -364,6 +380,17 @@ class GraphTest(unittest.TestCase):
         if not hasattr(g7, 'sequentialGraphs'):
             g7 = g6.parallelGraphs[1]
         self.assertEqual(2, len(g7.sequentialGraphs))
+        
+    ####################################
+    ###     GRAPH PARTITION TESTS    ###
+    ####################################
+    def testGraphCopy(self):
+        g1 = GRAPH(regex='abc')
+        g2 = g1.copy()
+        self.assertEqual(g1.outRegex, g2.outRegex)
+        
+        
+    
  
                    
         
