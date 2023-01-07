@@ -618,7 +618,7 @@ class GRAPH:
    def process(self,id_):
              
       if self.nodes[id_].topOrExists:
-         segments = getTopOrSegments(self.nodes[id_].regex)
+         segments =  getTopOrSegments(self.nodes[id_].regex)
          self.nodes[id_].replaced = True
          parents = self.getParents(self.nodes[id_].id_)
          children = self.getChildren(self.nodes[id_].id_)
@@ -728,7 +728,7 @@ class GRAPH:
            raise Exception( 'Node list includes invalid node.')
        
        M = np.array([self.nodes[n].vector.v for n in nodeList] )
-       print(M)
+      #  print(M)
        newv = M.any(axis=0).astype(int)
        return NODE(vector=VECTOR(newv))
             

@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from regexfinder import GRAPH, NODE, VECTOR
+from regexfinder import EDGE, GRAPH, NODE, VECTOR
 
 
 class NodeTest(unittest.TestCase):
@@ -388,7 +388,46 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex='abc')
         g2 = g1.copy()
         self.assertEqual(g1.outRegex, g2.outRegex)
+        g1==g2
         
+    ########################################
+    ###     GRAPH MERGE (NODES) TESTS    ###
+    ########################################
+    def testMergeNodes1(self):
+        n1 = NODE('[a]')
+        n2 = NODE('[b]')
+        nodeDict = {n1.id_ : n1, n2.id_ : n2}
+        g1 = GRAPH(nodes=nodeDict)
+        mergedNode = g1.mergeNodes([n1.id_, n2.id_])
+        self.assertEqual(mergedNode.regex, '[ab]')
+
+    def testMergeNodes2(self):
+        n1 = NODE('[a-c]')
+        n2 = NODE('[bfg]')
+        nodeDict = {n1.id_ : n1, n2.id_ : n2}
+        g1 = GRAPH(nodes=nodeDict)
+        mergedNode = g1.mergeNodes([n1.id_, n2.id_])
+        self.assertEqual(mergedNode.regex, '[a-cfg]')
+        
+    def testMergeNodes3(self):
+        n1 = NODE('[aceg{]')
+        n2 = NODE('[bdfh}]')
+        nodeDict = {n1.id_ : n1, n2.id_ : n2}
+        g1 = GRAPH(nodes=nodeDict)
+        mergedNode = g1.mergeNodes([n1.id_, n2.id_])
+        self.assertEqual(mergedNode.regex, '[a-h{}]')
+    
+        
+    # def testMergeNodesQuantifier(self):
+    #     n1 = NODE('[a]{3}')
+    #     n2 = NODE('[b]{2}')
+    #     nodeDict = {n1.id_ : n1, n2.id_ : n2}
+    #     g1 = GRAPH(nodes=nodeDict)
+    #     mergedNode = g1.mergeNodes([n1.id_, n2.id_])
+    #     self.assertEqual(mergedNode.regex, '[a-cfg]')
+        
+
+            
         
     
  
