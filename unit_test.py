@@ -417,6 +417,42 @@ class GraphTest(unittest.TestCase):
         mergedNode = g1.mergeNodes([n1.id_, n2.id_])
         self.assertEqual(mergedNode.regex, '[a-h{}]')
     
+    ################################
+    ###     GRAPH MERGE TESTS    ###
+    ################################
+    
+    def test1GraphOfMergedNodes(self):
+        n1 = NODE('a')
+        nodeDict = {n1.id_ : n1}
+        g1 = GRAPH(nodes=nodeDict)
+        g1.simplify()
+
+    def test2GraphOfMergedNodes(self):
+        n1 = NODE('a')
+        n2 = NODE('d')
+        nodeDict = {n1.id_ : n1, n2.id_ : n2}
+        e = [EDGE(n1.id_, n2.id_)]
+        
+        g1 = GRAPH(nodes=nodeDict, edges=e)
+        g1.simplify()
+        g1.partition()
+        mergedNode = g1.mergeNodes([n1.id_, n2.id_])
+        
+        self.assertEqual(mergedNode.regex, '[ad]')
+        
+    def test3GraphOfMergedNodes(self):
+        n1 = NODE('[acegi]')
+        n2 = NODE('[bdfhj]')
+        nodeDict = {n1.id_ : n1, n2.id_ : n2}
+        e = [EDGE(n1.id_, n2.id_)]
+        
+        g1 = GRAPH(nodes=nodeDict, edges=e)
+        g1.simplify()
+        g1.partition()
+        mergedNode = g1.mergeNodes([n1.id_, n2.id_])
+        
+        self.assertEqual(mergedNode.regex, '[a-j]')
+    
         
     # def testMergeNodesQuantifier(self):
     #     n1 = NODE('[a]{3}')
@@ -425,7 +461,33 @@ class GraphTest(unittest.TestCase):
     #     g1 = GRAPH(nodes=nodeDict)
     #     mergedNode = g1.mergeNodes([n1.id_, n2.id_])
     #     self.assertEqual(mergedNode.regex, '[a-cfg]')
+    
+###################################
+###     GRAPH CREATION TESTS    ###
+###################################
+    def testBuildGraph(self) :
+        n1= NODE('[abc][def]')
+        n2=NODE('\d')
+        n3=NODE('[A-H]')
+        e13=EDGE(n1.id_,n3.id_)
+        e23=EDGE(n2.id_,n3.id_)
+        edgeList = [e13,e23]
+        nodeDict = dict([(n.id_,n) for n in [n1,n2,n3]])
+        print(nodeDict)
+        G = GRAPH(nodes=nodeDict,edges=edgeList)
+        G.simplify()
+        G.partition()
         
+        G1 = G.sequentialGraphs[0]
+        G1.simplify()
+        G1.partition()
+        G2 = G1.parallelGraphs[0]
+        if not (hasattr(G2, 'sequentialGraphs')):
+            G2 = G1.parallelGraphs[1]
+        G2.simplify()
+        G2.partition()
+
+        self.assertEqual(len(G2.sequentialGraphs), 2)
 
             
         
