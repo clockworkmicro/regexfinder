@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import pandas as pd
 import re
@@ -5,6 +6,7 @@ from graphviz import Digraph
 from itertools import combinations
 import more_itertools as mit
 import random
+
 
 
 from utils import flatten, strCounter, getClassQuantList, getParenthesesSegments,getTopOrSegments,partitionClass, topOrExists
@@ -380,9 +382,8 @@ class GRAPH:
         pass
 
          
-   def copy(self): 
-      ###### need to deep copy regex and alpha
-      return GRAPH(regex=self.regex if self.regex else None,wordList=self.wordList.copy() if self.wordList else None,nodes=self.nodes.copy() if self.nodes else None,edges=self.edges.copy() if self.edges else None,alpha=self.alpha)
+   def deepCopy(self): 
+      return copy.deepcopy(self)
        
        
    def addNode(self,node):

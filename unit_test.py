@@ -386,9 +386,9 @@ class GraphTest(unittest.TestCase):
     ####################################
     def testGraphCopy(self):
         g1 = GRAPH(regex='abc')
-        g2 = g1.copy()
-        self.assertEqual(g1.outRegex, g2.outRegex)
-        g1==g2
+        g2 = g1.deepCopy()
+        self.assertNotEqual(id(g1), id(g2))
+        self.assertNotEqual(g1.startNode, g2.startNode)
         
     ########################################
     ###     GRAPH MERGE (NODES) TESTS    ###
@@ -451,7 +451,7 @@ class GraphTest(unittest.TestCase):
         g1.partition()
         mergedNode = g1.mergeNodes([n1.id_, n2.id_])
         
-        self.assertEqual(mergedNode.regex, '[a-j]')
+        self.assertEqual(mergedNode.regex   , '[a-j]')
     
         
     # def testMergeNodesQuantifier(self):
@@ -488,6 +488,25 @@ class GraphTest(unittest.TestCase):
         G2.partition()
 
         self.assertEqual(len(G2.sequentialGraphs), 2)
+        
+###########################################
+###     GRAPH MERGE QUANTIFIER TESTS    ###
+###########################################
+
+    def testSimpleQuantMerge(self):
+        n1 = NODE('a{2}')
+        n2 = NODE('d{3}')
+        nodeDict = {n1.id_ : n1, n2.id_ : n2}
+        e = [EDGE(n1.id_, n2.id_)]
+        
+        g1 = GRAPH(nodes=nodeDict, edges=e)
+        g1.simplify()
+        g1.partition()
+        mergedNode = g1.mergeNodes([n1.id_, n2.id_])
+        
+        
+        
+        
 
             
         
