@@ -148,7 +148,7 @@ class NODE:
 
     @property
     def K(self):
-        return (len(self.regex))
+        return len(self.regex)
 
     @property
     def phi(self):
@@ -178,7 +178,9 @@ class NODE:
 
 
 class EDGE:
-    def __init__(self, parent, child, words=[]):
+    def __init__(self, parent, child, words=None):
+        if words is None:
+            words = []
         self.parent = parent
         self.child = child
         self.words = words
@@ -329,7 +331,7 @@ class WORDCOLLECTION:
 
             for k in set(list(self.prefixDicts[i].keys()) + list(self.suffixDicts[i].keys())):
                 eq[k] = (
-                self.setToStr(self.prefixDicts[i].get(k, None)), self.setToStr(self.suffixDicts[i].get(k, None)))
+                    self.setToStr(self.prefixDicts[i].get(k, None)), self.setToStr(self.suffixDicts[i].get(k, None)))
 
             # The keys of eq are the alphabet. The values are each a tuple, where the first value is a 
             # string of the prefixes and the second is a string of the suffixes.
@@ -390,6 +392,18 @@ class GRAPH:
         if node.id_ in self.nodes.keys():
             raise Exception('Node key already exists')
         self.nodes[node.id_] = node
+        
+    #added overload for addEdge
+    def addNode(self, node, edge):
+        if node.id_ in self.nodes.keys():
+            raise Exception('Node key already exists')
+        self.nodes[node.id_] = node
+        self.edges.append(edge)
+        
+        
+    #overload?
+    def removeNode(self, node, edgeList):
+        return
 
     def addEdge(self, edge):
         self.edges.append(edge)
@@ -716,7 +730,7 @@ class GRAPH:
         else:
             for nodeSet in parallel:
                 self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
-                
+
     def isMergeNodesValid(self, nodeList):
         nodeAncestorsList = []
         nodeDescendantsList = []
@@ -775,11 +789,11 @@ class GRAPH:
 
         setOfTopNodeAncest = set(topNodeAncestors)
         setOfTopNodeDesc = set(topNodeDescendants)
-        setOfbottomNodeAncest = set(bottomNodeAncestors)
+        setOfBottomNodeAncest = set(bottomNodeAncestors)
         setOfbottomNodeDesc = set(bottomNodeDescendants)
 
         intersectTABD = list(setOfTopNodeAncest.intersection(setOfbottomNodeDesc))
-        intersectTDBA = list(setOfTopNodeDesc.intersection(setOfbottomNodeAncest))
+        intersectTDBA = list(setOfTopNodeDesc.intersection(setOfBottomNodeAncest))
 
         for intersectedNode in intersectTABD:
             if intersectedNode not in nodeList:
@@ -788,15 +802,12 @@ class GRAPH:
         for intersectedNode in intersectTDBA:
             if intersectedNode not in nodeList:
                 return False
-    
+
         return True
 
-        
-
-    def mergeNodes(self, nodeList):
+    def createMergedNodes(self, nodeList):
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
-
 
         if self.isMergeNodesValid(nodeList):
             M = np.array([self.nodes[n].vector.v for n in nodeList])
@@ -805,6 +816,16 @@ class GRAPH:
             return NODE(vector=VECTOR(newv))
         else:
             return False
+        
+    def mergeNodesGraph(self, nodeList):
+        if not set(nodeList).issubset(set(self.nodes.keys())):
+            raise Exception('Node list includes invalid node.')
+    
+        mergedNodes = self.createMergedNodes(nodeList=nodeList)
+        
+        if mergedNodes: 
+            return
+
 
     def createSubGraph(self, nodeList):
         subNodes = {}
@@ -832,6 +853,7 @@ class GRAPH:
                 sequentialGraphsNodes.append(descendantList)
             else:
                 sequentialGraphsNodes.append(currentSet + descendantList)
+
 
         else:
 
@@ -919,5 +941,4 @@ class GRAPH:
             k = list(self.nodes.keys())[0]
             node = self.nodes[k]
             if not node.vector:
-                node.random
-            return node.random
+                return node.random
