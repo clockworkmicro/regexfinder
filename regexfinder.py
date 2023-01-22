@@ -483,10 +483,16 @@ class GRAPH:
             return sorted(list(set(flatten([self.getChildren(parent) for parent in self.getParents(id_)]))))
 
     def getNodesNoChildren(self):
-        return [x for x in self.nodes.values() if not self.getChildren(x.id_)]
+        return [x.id_ for x in self.nodes.values() if not self.getChildren(x.id_)]
 
     def getNodesNoParents(self):
         return [x.id_ for x in self.nodes.values() if not self.getParents(x.id_)]
+    
+    def getLonelyNodes(self):
+        setOfNoParents = set(self.getNodesNoParents())
+        setOfNoChildren = set(self.getNodesNoChildren())
+        
+        return list(setOfNoChildren.intersection(setOfNoParents))
 
     def getNotSimple(self):
         return [id_ for id_, node in self.nodes.items() if (not node.replaced and not node.simple)]
@@ -779,6 +785,11 @@ class GRAPH:
                 self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
 
     def isMergeNodesValid(self, nodeList):
+        
+        if len(self.getLonelyNodes()) > 0:
+            if any(node in self.getLonelyNodes() for node in nodeList):
+                return False
+        
         nodeAncestorsList = []
         nodeDescendantsList = []
         # get the ancestors of all nodes in nodeList

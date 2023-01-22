@@ -600,6 +600,24 @@ class GraphTest(unittest.TestCase):
         
         self.assertIsInstance(e34List, list)
         
+    def testAddNodesEdgeCase(self):
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        edgeList = [e12, e23]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.simplify()
+        G.partition()
+        
+        n4 = NODE('d')
+        G.addNode(n4)
+        
+        self.assertFalse(G.isMergeNodesValid([n1.id_, n4.id_]))
+        
+        
         
         
 
