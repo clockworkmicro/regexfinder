@@ -394,16 +394,60 @@ class GRAPH:
         self.nodes[node.id_] = node
         
     #added overload for addEdge
-    def addNode(self, node, edge):
+    def addNodeAndEdge(self, node, edge):
         if node.id_ in self.nodes.keys():
             raise Exception('Node key already exists')
+        
         self.nodes[node.id_] = node
-        self.edges.append(edge)
+        if isinstance(edge, list):
+            for currEdge in edge:
+                self.edges.append(currEdge)
+        else:
+            self.edges.append(edge)
         
         
-    #overload?
-    def removeNode(self, node, edgeList):
-        return
+        
+        
+    #As of now will only be a supplier method for mergeNodes
+    #Should there be overloads?
+    #Should the function let them know which nodes are affected?
+    def removeNodeAndEdges(self, nodeList):
+        # upperEdges = []
+        # lowerEdges = []
+        # nodeIdList = [node.id_ for node in nodeList]
+        
+        upperAffectedNodes = []
+        lowerAffectedNodes = []
+        edgesToRemove = []
+        
+        # Future, could be more efficient by not going through entire edgeList
+        for edge in self.edges:
+            if edge.parent in nodeList or edge.child in nodeList:
+                edgesToRemove.append(edge)
+                
+            if edge.child in nodeList and edge.parent not in nodeList:
+                upperAffectedNodes.append(edge.parent)
+            elif edge.parent in nodeList and edge.child not in nodeList:
+                lowerAffectedNodes.append(edge.child)
+        
+        for node in nodeList:
+            del [self.nodes[node]] 
+        [self.edges.remove(edge) for edge in edgesToRemove]
+        
+        # for edge in edgeList:
+        #     childOfEdge = edge.child
+        #     if childOfEdge not in nodeIdList:
+        #         upperEdges.append(edge)
+        #     else:
+        #         lowerEdges.append(edge)
+                
+        #         # How do we reassign edges?
+                
+        
+        return [upperAffectedNodes, lowerAffectedNodes]
+    
+    #Is it possible to get edges from just a node?
+    # Do we have all necesarry methods?
 
     def addEdge(self, edge):
         self.edges.append(edge)
@@ -422,6 +466,9 @@ class GRAPH:
 
         if toRemove:
             [self.edges.remove(edge) for edge in toRemove]
+    
+    def removeEdgesViaList(self, edgeList):
+        [self.edges.remove(edge) for edge in edgeList]
 
     def getParents(self, id_):
         return [x.parent for x in self.edges if x.child == id_]
@@ -821,11 +868,23 @@ class GRAPH:
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
     
-        mergedNodes = self.createMergedNodes(nodeList=nodeList)
+        mergedNode = self.createMergedNodes(nodeList)
         
-        if mergedNodes: 
-            return
-
+        if type(mergedNode) == NODE: 
+            newEdgeList = []
+            
+            affectedNodes = self.removeNodeAndEdges(nodeList)
+            for upperNode in affectedNodes[0]:
+                newEdge = EDGE(upperNode, mergedNode.id_)
+                newEdgeList.append(newEdge)
+            for lowerNode in affectedNodes[1]:
+                newEdge = EDGE(mergedNode.id_, lowerNode)
+                newEdgeList.append(newEdge)
+            
+            self.nodes[mergedNode.id_] = mergedNode
+            self.edges.extend(newEdgeList)
+        else:
+            raise Exception("nodeList was not able to be merged")
 
     def createSubGraph(self, nodeList):
         subNodes = {}

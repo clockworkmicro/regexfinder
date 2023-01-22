@@ -516,12 +516,11 @@ class GraphTest(unittest.TestCase):
         e23 = EDGE(n2.id_, n3.id_)
         edgeList = [e13, e23]
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
-        # print(nodeDict)
         G = GRAPH(nodes=nodeDict, edges=edgeList)
         G.simplify()
         G.partition()
 
-        C1 = G.mergeNodes([n1.id_, n2.id_, n3.id_])  # Should not run
+        C1 = G.mergeNodes([n1.id_, n2.id_, n3.id_])
         self.assertIsInstance(C1, NODE)
         
         C2 = G.mergeNodes([n1.id_, n3.id_])
@@ -565,6 +564,43 @@ class GraphTest(unittest.TestCase):
         
         C5 = G.mergeNodes([n5.id_, n6.id_, n8.id_])
         self.assertIsInstance(C5, NODE)
+        
+    def testGraphMergedNodes(self):
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        edgeList = [e12, e23]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.simplify()
+        G.partition()
+        
+        C1 = G.mergeNodesGraph([n1.id_, n2.id_])
+        self.assertIsInstance(C1, NODE)
+        C2 = G.mergeNodesGraph([n1.id_, n3.id_])
+        self.assertFalse(C2)
+        
+        
+    def testAddNodes(self):
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        edgeList = [e12, e23]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.simplify()
+        G.partition()
+        n4 = NODE('d')
+        e34 = EDGE(n3.id_, n4.id_)
+        e34List = [e34]
+        
+        self.assertIsInstance(e34List, list)
+        
+        
         
 
 
