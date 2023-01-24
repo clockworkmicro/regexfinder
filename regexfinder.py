@@ -388,13 +388,8 @@ class GRAPH:
     def deepCopy(self):
         return copy.deepcopy(self)
 
-    def addNode(self, node):
-        if node.id_ in self.nodes.keys():
-            raise Exception('Node key already exists')
-        self.nodes[node.id_] = node
         
-    #added overload for addEdge
-    def addNodeAndEdge(self, node, edge):
+    def addNode(self, node, edge):
         if node.id_ in self.nodes.keys():
             raise Exception('Node key already exists')
         
