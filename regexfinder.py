@@ -388,8 +388,15 @@ class GRAPH:
     def deepCopy(self):
         return copy.deepcopy(self)
 
+
+    def addNode(self, node):
+        if node.id_ in self.nodes.keys():
+            raise Exception('Node key already exists')
         
-    def addNode(self, node, edge):
+        self.nodes[node.id_] = node
+
+    
+    def addNodeAndEdge(self, node, edge):
         if node.id_ in self.nodes.keys():
             raise Exception('Node key already exists')
         
@@ -876,7 +883,7 @@ class GRAPH:
     
         mergedNode = self.createMergedNodes(nodeList)
         
-        if type(mergedNode) == NODE: 
+        if isinstance(mergedNode, NODE): 
             newEdgeList = []
             
             affectedNodes = self.removeNodeAndEdges(nodeList)
