@@ -469,7 +469,7 @@ class GRAPH:
         if toRemove:
             [self.edges.remove(edge) for edge in toRemove]
     
-    def removeEdgesViaList(self, edgeList):
+    def removeEdgesList(self, edgeList):
         [self.edges.remove(edge) for edge in edgeList]
 
     def getParents(self, id_):
@@ -788,7 +788,7 @@ class GRAPH:
 
     def isMergeNodesValid(self, nodeList):
         
-        if len(self.getLonelyNodes()) > 0:
+        if self.getLonelyNodes():
             if any(node in self.getLonelyNodes() for node in nodeList):
                 return False
         
@@ -828,24 +828,40 @@ class GRAPH:
         topNodeDescendants = []
         bottomNodeAncestors = []
         bottomNodeDescendants = []
+        
+                # for intersectedNode in intersectTABD:
+        #     if intersectedNode not in nodeList:
+        #         return False
+            
+
+        # # list comprehension, use any()
+        # for intersectedNode in intersectTDBA:
+        #     if intersectedNode not in nodeList:
+        #         return False
+        
+        # return True
 
         for topNode in topNodes:
-            for topNodeAncest in self.getNodeAncestors(topNode):
-                if topNodeAncest not in topNodeAncestors:
-                    topNodeAncestors.append(topNodeAncest)
+            [topNodeAncestors.append(topNodeAncest) for topNodeAncest in self.getNodeAncestors(topNode) if topNodeAncest not in topNodeAncestors]
+            # for topNodeAncest in self.getNodeAncestors(topNode):
+            #     if topNodeAncest not in topNodeAncestors:
+            #         topNodeAncestors.append(topNodeAncest)
 
-            for topNodeDesc in self.getNodeDescendants(topNode):
-                if topNodeDesc not in topNodeDescendants:
-                    topNodeDescendants.append(topNodeDesc)
+            [topNodeDescendants.append(topNodeDesc) for topNodeDesc in self.getNodeDescendants(topNode) if topNodeDesc not in topNodeDescendants]
+            # for topNodeDesc in self.getNodeDescendants(topNode):
+            #     if topNodeDesc not in topNodeDescendants:
+            #         topNodeDescendants.append(topNodeDesc)
 
         for bottomNode in bottomNodes:
-            for bottomNodeAncest in self.getNodeAncestors(bottomNode):
-                if bottomNodeAncest not in bottomNodeAncestors:
-                    bottomNodeAncestors.append(bottomNodeAncest)
+            [bottomNodeAncestors.append(bottomNodeAncest) for bottomNodeAncest in self.getNodeAncestors(bottomNode) if bottomNodeAncest not in bottomNodeAncestors]
+            # for bottomNodeAncest in self.getNodeAncestors(bottomNode):
+            #     if bottomNodeAncest not in bottomNodeAncestors:
+            #         bottomNodeAncestors.append(bottomNodeAncest)
 
-            for bottomNodeDesc in self.getNodeDescendants(bottomNode):
-                if bottomNodeDesc not in bottomNodeDescendants:
-                    bottomNodeDescendants.append(bottomNodeDesc)
+            [bottomNodeDescendants.append(bottomNodeDesc) for bottomNodeDesc in self.getNodeDescendants(bottomNode) if bottomNodeDesc not in bottomNodeDescendants]
+            # for bottomNodeDesc in self.getNodeDescendants(bottomNode):
+            #     if bottomNodeDesc not in bottomNodeDescendants:
+            #         bottomNodeDescendants.append(bottomNodeDesc)
 
         setOfTopNodeAncest = set(topNodeAncestors)
         setOfTopNodeDesc = set(topNodeDescendants)
@@ -855,15 +871,16 @@ class GRAPH:
         intersectTABD = list(setOfTopNodeAncest.intersection(setOfbottomNodeDesc))
         intersectTDBA = list(setOfTopNodeDesc.intersection(setOfBottomNodeAncest))
 
-        for intersectedNode in intersectTABD:
-            if intersectedNode not in nodeList:
+        # if the list is empty
+        if not (intersectTABD and intersectTDBA):
+            return True
+        else:
+            areNodesInNodeList1 = any([node in intersectTABD for node in nodeList])
+            areNodesInNodeList2 = any([node in intersectTDBA for node in nodeList])
+            if not (areNodesInNodeList1 or areNodesInNodeList2):
                 return False
-
-        for intersectedNode in intersectTDBA:
-            if intersectedNode not in nodeList:
-                return False
-
-        return True
+            else:
+                return True
 
     def createMergedNodes(self, nodeList):
         if not set(nodeList).issubset(set(self.nodes.keys())):
