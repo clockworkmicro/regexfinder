@@ -1,4 +1,5 @@
 import re
+from typing import overload
 
 def strNumberGenerator():
      number = 0
@@ -102,6 +103,68 @@ def getClassQuantList(inString):
             elif len(vals) == 2:
                entry['min'] = int(vals[0])
                entry['max'] = int(vals[1])            
+        toReturn.append(entry)
+    return toReturn
+
+def setClassQuantList(inString, quantifier):
+    if isinstance(quantifier, int):
+        if quantifier < 1:
+            raise Exception('Quantifier must be greater than 0')
+    elif isinstance(quantifier, str):
+        if not quantifier:
+            raise Exception('Quantifier field is empty')
+        elif not any(re.match('\d', char) for char in [*quantifier]):
+            raise Exception('Invalid Quantifier input')
+    else:
+        raise Exception('Invalid quantifier input')
+        
+    matches = re.finditer(r"(\[[^]]+\]|\\d|\\w|\\W|.)(\?|\+|\*|\{\d?,?\d?\})?" ,inString)
+    toReturn = []
+    for match in matches:
+        groups = list(match.groups())
+        if not len(groups) == 2:
+            raise Exception('Expected 2 groups. Received ',len(groups))
+
+        entry = {'class':groups[0]}
+        entry['quantifier'] = '{' + str(quantifier) + '}'
+        if isinstance(quantifier, int):
+                entry['min'] = quantifier
+                entry['max'] = quantifier
+        else:
+            quantifierCharacters = [*quantifier]
+            
+            if len(quantifierCharacters) == 1:
+                quant = int(quantifierCharacters[0])
+                entry['max'] = quant
+                entry['min'] = quant
+            elif quantifierCharacters[0] == ',':
+                entry['min'] = 0;
+                max = quantifierCharacters[1]
+                i = 2
+                while i < len(quantifierCharacters):
+                    max += quantifierCharacters[i]
+                    i+=1
+                max = int(max)
+                entry['max'] = max
+            elif quantifierCharacters[len(quantifierCharacters)-1] == ',':
+                raise Exception("Quantifier must have a finite/bounded maximum")
+            else:
+                min = quantifierCharacters[0]
+                i = 1
+                while not quantifierCharacters[i] == ',':
+                    min += quantifierCharacters[i]
+                    i+=1
+                min = int(min)
+                entry['min'] = min
+                i+=1
+                max = quantifierCharacters[i]
+                i+=1
+                while i < len(quantifierCharacters):
+                    max += quantifierCharacters[i]
+                    i+=1
+                max = int(max)
+                entry['max'] = max  
+                         
         toReturn.append(entry)
     return toReturn
 

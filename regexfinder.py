@@ -7,12 +7,11 @@ from itertools import combinations
 import more_itertools as mit
 import random
 
-from utils import flatten, strCounter, getClassQuantList, getParenthesesSegments, getTopOrSegments, partitionClass, \
-    topOrExists
+from utils import *
 
 
 class NODE:
-    def __init__(self, regex=None, vector=None, replaced=False, simple=False, alpha=1):
+    def __init__(self, regex=None, vector=None, replaced=False, simple=False, alpha=1, quantifier=None):
 
         if regex is None and vector is None:
             raise Exception('Either regex or vector required.')
@@ -28,7 +27,11 @@ class NODE:
             self.regex = self.vector.regex
 
         self.removeOuterParentheses()
-        self.classQuantList = getClassQuantList(self.regex)
+        if quantifier is None:
+            self.classQuantList = getClassQuantList(self.regex)
+        else:
+            self.classQuantList = setClassQuantList(self.regex, quantifier)
+            
         if self.simple:
             self.createVector()
         else:
@@ -44,6 +47,21 @@ class NODE:
             return self.classQuantList[0]['quantifier']
         else:
             return False
+        
+    @property
+    def getQuantifierMin(self):
+        if self.simple:
+            return self.classQuantList[0]['min']
+        else:
+            return False    
+        
+    @property
+    def getQuantifierMax(self):
+        if self.simple:
+            return self.classQuantList[0]['max']
+        else:
+            return False    
+        
 
     @property
     def topOrExists(self):
@@ -389,30 +407,21 @@ class GRAPH:
         return copy.deepcopy(self)
 
 
-    def addNode(self, node):
+    def addNode(self, node, edges=[]):
         if node.id_ in self.nodes.keys():
             raise Exception('Node key already exists')
         
         self.nodes[node.id_] = node
-
-    
-    def addNodeAndEdge(self, node, edge):
-        if node.id_ in self.nodes.keys():
-            raise Exception('Node key already exists')
         
-        self.nodes[node.id_] = node
-        if isinstance(edge, list):
-            for currEdge in edge:
+        if edges:
+            for currEdge in edges:
                 self.edges.append(currEdge)
         else:
-            self.edges.append(edge)
+            pass
         
         
         
         
-    #As of now will only be a supplier method for mergeNodes
-    #Should there be overloads?
-    #Should the function let them know which nodes are affected?
     def removeNodeAndEdges(self, nodeList):
         # upperEdges = []
         # lowerEdges = []
@@ -436,22 +445,15 @@ class GRAPH:
             del [self.nodes[node]] 
         [self.edges.remove(edge) for edge in edgesToRemove]
         
-        # for edge in edgeList:
-        #     childOfEdge = edge.child
-        #     if childOfEdge not in nodeIdList:
-        #         upperEdges.append(edge)
-        #     else:
-        #         lowerEdges.append(edge)
-                
-        #         # How do we reassign edges?
                 
         
         return [upperAffectedNodes, lowerAffectedNodes]
     
-    #Is it possible to get edges from just a node?
-    # Do we have all necesarry methods?
 
     def addEdge(self, edge):
+        for gEdge in self.edges:
+            if edge == gEdge:
+                raise Exception("Edge already exists")
         self.edges.append(edge)
 
     def getEdge(self, parent, child):
@@ -843,25 +845,13 @@ class GRAPH:
 
         for topNode in topNodes:
             [topNodeAncestors.append(topNodeAncest) for topNodeAncest in self.getNodeAncestors(topNode) if topNodeAncest not in topNodeAncestors]
-            # for topNodeAncest in self.getNodeAncestors(topNode):
-            #     if topNodeAncest not in topNodeAncestors:
-            #         topNodeAncestors.append(topNodeAncest)
 
             [topNodeDescendants.append(topNodeDesc) for topNodeDesc in self.getNodeDescendants(topNode) if topNodeDesc not in topNodeDescendants]
-            # for topNodeDesc in self.getNodeDescendants(topNode):
-            #     if topNodeDesc not in topNodeDescendants:
-            #         topNodeDescendants.append(topNodeDesc)
 
         for bottomNode in bottomNodes:
             [bottomNodeAncestors.append(bottomNodeAncest) for bottomNodeAncest in self.getNodeAncestors(bottomNode) if bottomNodeAncest not in bottomNodeAncestors]
-            # for bottomNodeAncest in self.getNodeAncestors(bottomNode):
-            #     if bottomNodeAncest not in bottomNodeAncestors:
-            #         bottomNodeAncestors.append(bottomNodeAncest)
 
             [bottomNodeDescendants.append(bottomNodeDesc) for bottomNodeDesc in self.getNodeDescendants(bottomNode) if bottomNodeDesc not in bottomNodeDescendants]
-            # for bottomNodeDesc in self.getNodeDescendants(bottomNode):
-            #     if bottomNodeDesc not in bottomNodeDescendants:
-            #         bottomNodeDescendants.append(bottomNodeDesc)
 
         setOfTopNodeAncest = set(topNodeAncestors)
         setOfTopNodeDesc = set(topNodeDescendants)
@@ -871,7 +861,6 @@ class GRAPH:
         intersectTABD = list(setOfTopNodeAncest.intersection(setOfbottomNodeDesc))
         intersectTDBA = list(setOfTopNodeDesc.intersection(setOfBottomNodeAncest))
 
-        # if the list is empty
         if not (intersectTABD and intersectTDBA):
             return True
         else:
@@ -894,7 +883,7 @@ class GRAPH:
         else:
             return False
         
-    def mergeNodesGraph(self, nodeList):
+    def mergeNodes(self, nodeList):
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
     

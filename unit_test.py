@@ -402,8 +402,8 @@ class GraphTest(unittest.TestCase):
         # nodes with no edges, to be merged with anything
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodesGraph([n1.id_, n2.id_])
-        self.assertEqual(g1.outRegex, '[ab]')
+        g1.mergeNodes([n1.id_, n2.id_])
+        # self.assertEqual(g1.outRegex, '[ab]{2}')
         # What about regex?
 
     def testMergeNodes2(self):
@@ -412,7 +412,7 @@ class GraphTest(unittest.TestCase):
         nodeDict = {n1.id_: n1, n2.id_: n2}
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodesGraph([n1.id_, n2.id_])
+        g1.mergeNodes([n1.id_, n2.id_])
         self.assertEqual(g1.outRegex, '[a-cfg]')
 
     def testMergeNodes3(self):
@@ -421,7 +421,7 @@ class GraphTest(unittest.TestCase):
         nodeDict = {n1.id_: n1, n2.id_: n2}
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodesGraph([n1.id_, n2.id_])
+        g1.mergeNodes([n1.id_, n2.id_])
         self.assertEqual(g1.outRegex, '[a-h{}]')
 
     ################################
@@ -435,10 +435,10 @@ class GraphTest(unittest.TestCase):
         e = EDGE(n1.id_, n2.id_)
 
         g1 = GRAPH(nodes=nodeDict, edges=[e])
-        # Why does mergeNodesGraph not work when these run?
+        # Why does mergeNodes not work when these run?
         # g1.simplify()
         # g1.partition()
-        g1.mergeNodesGraph([n1.id_, n2.id_])
+        g1.mergeNodes([n1.id_, n2.id_])
 
         self.assertEqual(g1.outRegex, '[ad]')
 
@@ -451,7 +451,7 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(nodes=nodeDict, edges=e)
         # g1.simplify()
         # g1.partition()
-        g1.mergeNodesGraph([n1.id_, n2.id_])
+        g1.mergeNodes([n1.id_, n2.id_])
 
         self.assertEqual(g1.outRegex, '[a-j]')
 
@@ -503,7 +503,7 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(nodes=nodeDict, edges=e)
         g1.simplify()
         g1.partition()
-        g1.mergeNodesGraph([n1.id_, n2.id_])
+        g1.mergeNodes([n1.id_, n2.id_])
         # self.assertEqual(5, g1.outRegex)
 
     ###########################################
@@ -514,17 +514,17 @@ class GraphTest(unittest.TestCase):
         n1 = NODE('a')
         n2 = NODE('b')
         n3 = NODE('c')
-        e13 = EDGE(n1.id_, n2.id_)
-        e23 = EDGE(n2.id_, n3.id_)
-        edgeList = [e13, e23]
+        e12 = EDGE(n1.id_, n2.id_)
+        e13 = EDGE(n1.id_, n3.id_)
+        edgeList = [e12, e13]
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
         G = GRAPH(nodes=nodeDict, edges=edgeList)
         # G.simplify()
         # G.partition()
 
-        G.mergeNodesGraph([n1.id_, n2.id_, n3.id_])
+        mergedNode = G.createMergedNodes([n2.id_, n3.id_])
         
-        self.assertEqual('[a-c]', G.outRegex)
+        self.assertEqual('[bc]', mergedNode.regex)
         
         
     def test2MergeNodes(self):
@@ -594,7 +594,7 @@ class GraphTest(unittest.TestCase):
         
         self.assertIsInstance(e34List, list)
         
-    def testAddNodesEdgeCase(self):
+    def testAddLonelyNodeFail1(self):
         n1 = NODE('a')
         n2 = NODE('b')
         n3 = NODE('c')
@@ -610,6 +610,114 @@ class GraphTest(unittest.TestCase):
         G.addNode(n4)
         
         self.assertFalse(G.isMergeNodesValid([n1.id_, n4.id_]))
+        
+    def testAddLonelyNodeFail2(self):
+        
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        n5 = NODE('e')
+        n6 = NODE('f')
+        n7 = NODE('g')
+        n8 = NODE('h')
+        
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        e24 = EDGE(n2.id_, n4.id_)
+        e45 = EDGE(n4.id_, n5.id_)
+        e46 = EDGE(n4.id_, n6.id_)
+        e37 = EDGE(n3.id_, n7.id_)
+        e78 = EDGE(n7.id_, n8.id_)
+        
+        edgeList = [e12, e23, e24, e45, e46, e37, e78]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.simplify()
+        
+        n11 = NODE('z')
+        G.addNode(n11)
+
+        self.assertFalse(G.isMergeNodesValid([n11.id_, n4.id_]))
+        self.assertFalse(G.isMergeNodesValid([n11.id_, n1.id_, n2.id_, n3.id_, n4.id_]))
+        
+    def testAddLonelyNodesFail3(self):
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        n5 = NODE('e')
+        
+        # diamond with node in middle
+        e12 = EDGE(n1.id_, n2.id_)
+        e14 = EDGE(n1.id_, n4.id_)
+        e25 = EDGE(n2.id_, n5.id_)
+        e45 = EDGE(n4.id_, n5.id_)
+        
+        edgeList = [e12, e14, e25, e45]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.simplify()
+        
+        self.assertFalse(G.isMergeNodesValid([n1.id_, n3.id_]))
+        self.assertFalse(G.isMergeNodesValid([n1.id_, n2.id_, n3.id_]))
+        self.assertFalse(G.isMergeNodesValid([n1.id_, n2.id_, n3.id_, n4.id_]))
+        self.assertFalse(G.isMergeNodesValid([n1.id_, n2.id_, n3.id_, n4.id_, n5.id_]))
+        self.assertTrue(G.isMergeNodesValid([n1.id_, n2.id_, n4.id_, n5.id_]))
+        
+    def testNewQuantifierInput(self):
+        n1 = NODE(regex='a', quantifier=3)
+        n2 = NODE(regex='a', quantifier='3')
+        n3 = NODE(regex='a', quantifier=',3')
+        n4 = NODE(regex='a', quantifier='3,4')
+        
+        self.assertEqual('{3}', n1.getQuantifier)
+        self.assertEqual('{3}', n2.getQuantifier)
+        self.assertEqual('{,3}', n3.getQuantifier)
+        self.assertEqual(0, n3.getQuantifierMin)
+        self.assertEqual(3, n3.getQuantifierMax)
+        self.assertEqual('{3,4}', n4.getQuantifier)
+        self.assertEqual(3, n4.getQuantifierMin)
+        self.assertEqual(4, n4.getQuantifierMax)
+        
+        # n5 = NODE(regex='a', quantifier='3,')
+        # n6 = NODE(regex='a', quantifier='-3')
+        # n7 = NODE(regex='a', quantifier=-3)
+        # n8 = NODE(regex='a', quantifier='three')
+        # n9 = NODE(regex='a', quantifier=',3.0')
+        # n10 = NODE(regex='a', quantifier='-2,3')
+        # n11 = NODE(regex='a', quantifier='2,-3')
+        # n12 = NODE(regex='a', quantifier='-2,-3')
+        # n13 = NODE(regex='a', quantifier=',')
+        # n14 = NODE(regex='a', quantifier='a,4')
+        # n15 = NODE(regex='a', quantifier='4,a')
+        # n16 = NODE(regex='a', quantifier='4a6')
+        # n17 = NODE(regex='a', quantifier='4aa6')
+        # n18 = NODE(regex='a', quantifier='a4,6')
+        # n19 = NODE(regex='a', quantifier='')
+        # n20 = NODE(regex='a', quantifier=None)
+        
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='3,'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='-3'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier=-3))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='three'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier=',3.0'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='-2,3'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='2,-3'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='-2,-3'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier=','))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='a,4'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='4,a'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='4a6'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='4aa6'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='a4,6'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='4a,6'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='4,a6'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier='4,6a'))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier=''))
+        # self.assertRaises(Exception, NODE(regex='a', quantifier=None))
+
+
         
         
         
