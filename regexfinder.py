@@ -24,13 +24,21 @@ class NODE:
         self.replaced = replaced
 
         if self.regex is None:
+            # if merging nodes this will make the characters go in alphabetical order
             self.regex = self.vector.regex
+            if quantifier is not None:
+                regexUpdates = setClassQuantList(self.regex, quantifier)
+                self.classQuantList = regexUpdates[0]
+                self.regex = regexUpdates[1]
+            else: 
+                self.classQuantList = getClassQuantList(self.regex)
+        else:
+            self.classQuantList = getClassQuantList(self.regex)
+            
+                
 
         self.removeOuterParentheses()
-        if quantifier is None:
-            self.classQuantList = getClassQuantList(self.regex)
-        else:
-            self.classQuantList = setClassQuantList(self.regex, quantifier)
+
             
         if self.simple:
             self.createVector()
@@ -60,7 +68,17 @@ class NODE:
         if self.simple:
             return self.classQuantList[0]['max']
         else:
-            return False    
+            return False
+        
+    def mergeQuantifiers(self, nodeList):
+        nodeList.append(self)
+        lowestLow = min(lowestMin.getQuantifierMin for lowestMin in nodeList)
+        highestHigh = max(highestMax.getQuantifierMax for highestMax in nodeList)
+        
+        if lowestLow == highestHigh:
+            return lowestLow
+        else:
+            return (lowestLow, highestHigh)
         
 
     @property
@@ -159,6 +177,10 @@ class NODE:
 
         else:
             raise Exception('Check class quantifier')
+        
+    @property
+    def singleQuantifier(self):
+        return self.getQuantifierMin == self.getQuantifierMax
 
     @property
     def entropy(self):
@@ -437,13 +459,18 @@ class GRAPH:
                 edgesToRemove.append(edge)
                 
             if edge.child in nodeList and edge.parent not in nodeList:
-                upperAffectedNodes.append(edge.parent)
+                if edge.parent not in upperAffectedNodes:
+                    upperAffectedNodes.append(edge.parent)
             elif edge.parent in nodeList and edge.child not in nodeList:
-                lowerAffectedNodes.append(edge.child)
+                if edge.child not in lowerAffectedNodes:
+                    lowerAffectedNodes.append(edge.child)
+        
+        # [self.edges.remove(x) for x in edgesToRemove]
+        for edge in edgesToRemove:
+            self.edges.remove(edge)
         
         for node in nodeList:
-            del [self.nodes[node]] 
-        [self.edges.remove(edge) for edge in edgesToRemove]
+            del self.nodes[node]
         
                 
         
@@ -725,16 +752,16 @@ class GRAPH:
             cQList = getClassQuantList(self.nodes[id_].regex)
             parents = self.getParents(self.nodes[id_].id_)
             self.nodes[id_].replaced = True
-            toString = lambda d: d['class'] + d['quantifier'] if d['quantifier'] else d['class']
+            toString = lambda d: d['class'] + str(d['quantifier']) if d['quantifier'] else d['class']
 
-            n = NODE(toString(cQList[0]), simple=True)
+            n = NODE(regex=toString(cQList[0]), simple=True)
             self.addNode(n)
             previous = n.id_
             for parent in parents:
                 self.addEdge(EDGE(parent, n.id_))
                 self.removeEdge(parent, self.nodes[id_].id_)
             for cQ in cQList[1:]:
-                n = NODE(toString(cQ), simple=True)
+                n = NODE(regex=toString(cQ), simple=True)
                 self.addNode(n)
                 self.addEdge(EDGE(previous, n.id_))
                 previous = n.id_
@@ -871,7 +898,7 @@ class GRAPH:
             else:
                 return True
 
-    def createMergedNodes(self, nodeList):
+    def createMergedNodes(self, nodeList, nodeRelationship):
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
 
@@ -879,15 +906,58 @@ class GRAPH:
             M = np.array([self.nodes[n].vector.v for n in nodeList])
             #  print(M)
             newv = M.any(axis=0).astype(int)
-            return NODE(vector=VECTOR(newv))
+            # This is passing in a list of node *ids*
+            if nodeRelationship.lower() == 'sequential':
+                newQuantifier = self.createMergedSequentialNodesQuantifier(nodeList)
+            else:
+                newQuantifier = self.createMergedParallelNodesQuantifier(nodeList)
+                
+            return NODE(vector=VECTOR(newv), quantifier=newQuantifier)
         else:
             return False
+    
+    def createMergedParallelNodesQuantifier(self, nodeList):
+        if any(self.nodes[nodeId].getQuantifier for nodeId in nodeList):
+            lowestLow = min(self.nodes[nodeId].getQuantifierMin for nodeId in nodeList if self.nodes[nodeId].getQuantifierMin)
+            highestHigh = max(self.nodes[nodeId].getQuantifierMax for nodeId in nodeList if self.nodes[nodeId].getQuantifierMax)
+            
+            if lowestLow == highestHigh:
+                return lowestLow
+            else:
+                # I am making the return a string b/c
+                # this return should be used to initialize a node,
+                # which will run getClassQuantList and that code
+                # handles a tuple as a string, for now
+                return str((lowestLow,highestHigh))
+        else:
+            return None
         
-    def mergeNodes(self, nodeList):
+    def createMergedSequentialNodesQuantifier(self, nodeList):
+        if any(self.nodes[nodeId].getQuantifier for nodeId in nodeList):
+            lowestLows = [self.nodes[nodeId].getQuantifierMin for nodeId in nodeList if self.nodes[nodeId].getQuantifierMin]
+            highestHighs = [self.nodes[nodeId].getQuantifierMax for nodeId in nodeList if self.nodes[nodeId].getQuantifierMax]
+            
+            sumLowestLows = sum(lowestLows)
+            sumHighestHighs = sum(highestHighs)
+            
+            if sumLowestLows == sumHighestHighs:
+                return sumHighestHighs
+            else:
+                return str((lowestLows,highestHighs))
+        else:
+            return None
+        
+        
+    def mergeNodes(self, nodeList, nodeRelationship):
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
+        if isinstance(nodeRelationship, str):
+            if not ((nodeRelationship.lower() == "sequential") or (nodeRelationship.lower() == "parallel")):
+                raise Exception("Node relationship is either 'sequential' or 'parallel'")
+        else:
+            raise Exception("Node relationship should be a string 'sequential' or 'parallel'")
     
-        mergedNode = self.createMergedNodes(nodeList)
+        mergedNode = self.createMergedNodes(nodeList, nodeRelationship)
         
         if isinstance(mergedNode, NODE): 
             newEdgeList = []

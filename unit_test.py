@@ -73,6 +73,18 @@ class NodeTest(unittest.TestCase):
         self.assertEqual(n3.getQuantifier, False)
         n4 = NODE('\d{3}(ab)')
         self.assertEqual(n4.getQuantifier, False)
+        
+    def testMergeQuantifier(self):
+        n1 = NODE('a{4}')
+        n2 = NODE('b{3}')
+        self.assertEqual((3,4), n1.mergeQuantifiers([n2]))
+        n1 = NODE('a{3,4}')
+        self.assertEqual((3,4), n1.mergeQuantifiers([n2]))
+        n1 = NODE('a{2,5}')
+        self.assertEqual((2,5), n1.mergeQuantifiers([n2]))
+        n2 = NODE('b{1,6}')
+        self.assertEqual((1,6), n1.mergeQuantifiers([n2]))
+        
 
 
 class VectorTest(unittest.TestCase):
@@ -504,7 +516,7 @@ class GraphTest(unittest.TestCase):
         g1.simplify()
         g1.partition()
         g1.mergeNodes([n1.id_, n2.id_])
-        # self.assertEqual(5, g1.outRegex)
+        self.assertEqual('[ad]{2,3}', g1.outRegex)
 
     ###########################################
     ###     GRAPH MERGE LIMIT TESTS    ###

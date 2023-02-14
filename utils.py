@@ -72,11 +72,11 @@ def getParenthesesSegments(inString):
     r = p+c
     r.sort(key = lambda x:x[1])
     segments = [inString[x[0]:x[1]] for x in r]
-    segments = [removeOuterParentheses(s) for s in segments]
+    segments = [removeOuterParenthesesOrBrackets(s) for s in segments]
     return segments
 
-def removeOuterParentheses(inString):
-    if inString[0] == '(' and inString[-1] == ')':
+def removeOuterParenthesesOrBrackets(inString):
+    if (inString[0] == '(' and inString[-1] == ')') or (inString[0] == '[' and inString[-1] == ']') :
         return inString[1:-1]
     else:
         return inString
@@ -88,33 +88,51 @@ def getClassQuantList(inString):
         groups = list(match.groups())
         if not len(groups) == 2:
             raise Exception('Expected 2 groups. Received ',len(groups))
+        
 
-        entry = {'class':groups[0],'quantifier':groups[1]}
-        if groups[1]:            
-            matches2 = re.finditer(r"\d+" ,groups[1])
-            vals = [match2.group() for match2 in matches2]
-    
-            if not vals:
-               entry['min'] = None
-               entry['max'] = None
-            elif len(vals) == 1:
-               entry['min'] = int(vals[0])
-               entry['max'] = int(vals[0])
-            elif len(vals) == 2:
-               entry['min'] = int(vals[0])
-               entry['max'] = int(vals[1])            
+        entry = {'class':groups[0]}
+        if groups[1]:         
+            if groups[1] != '{1}':   
+                entry['quantifier'] = groups[1]
+                matches2 = re.finditer(r"\d+" ,groups[1])
+                vals = [match2.group() for match2 in matches2]
+        
+                if not vals:
+                    entry['min'] = None
+                    entry['max'] = None
+                elif len(vals) == 1:
+                    entry['min'] = int(vals[0])
+                    entry['max'] = int(vals[0])
+                elif len(vals) == 2:
+                    if int(vals[0]) > int(vals[1]):
+                        raise Exception("Min and Max quantifier values are in the wrong place")
+                    entry['min'] = int(vals[0])
+                    entry['max'] = int(vals[1])
+            else:
+                entry['quantifier'] = None
+                entry['min'] = None
+                entry['max'] = None
+        else:
+            entry['quantifier'] = None
+            entry['min'] = None
+            entry['max'] = None
+            
         toReturn.append(entry)
     return toReturn
+
 
 def setClassQuantList(inString, quantifier):
     if isinstance(quantifier, int):
         if quantifier < 1:
             raise Exception('Quantifier must be greater than 0')
     elif isinstance(quantifier, str):
+        quantifier = removeOuterParenthesesOrBrackets(quantifier)
         if not quantifier:
             raise Exception('Quantifier field is empty')
         elif not any(re.match('\d', char) for char in [*quantifier]):
             raise Exception('Invalid Quantifier input')
+        elif isinstance(quantifier, tuple):
+            quantifier = str(quantifier)
     else:
         raise Exception('Invalid quantifier input')
         
@@ -126,19 +144,36 @@ def setClassQuantList(inString, quantifier):
             raise Exception('Expected 2 groups. Received ',len(groups))
 
         entry = {'class':groups[0]}
-        entry['quantifier'] = '{' + str(quantifier) + '}'
+        quantIsOne = False
+        if quantifier == 1:
+            quantIsOne = True
+
+        if quantIsOne:
+            entry['quantifier'] = None
+        else:
+            entry['quantifier'] = '{' + str(quantifier) + '}'
+            # entry['quantifier'] = quantifier
+
         if isinstance(quantifier, int):
+            if quantIsOne:
+                entry['min'] = None
+                entry['max'] = None
+            else:
                 entry['min'] = quantifier
                 entry['max'] = quantifier
         else:
             quantifierCharacters = [*quantifier]
+            if not re.match('\d', quantifierCharacters[0]):
+                entry['quantifier'] = '{' + removeOuterParenthesesOrBrackets(entry['quantifier'][1:-1]) + '}'
+                quantifier = removeOuterParenthesesOrBrackets(quantifier)
+                quantifierCharacters = [*quantifier]
             
             if len(quantifierCharacters) == 1:
                 quant = int(quantifierCharacters[0])
                 entry['max'] = quant
                 entry['min'] = quant
             elif quantifierCharacters[0] == ',':
-                entry['min'] = 0;
+                entry['min'] = 0
                 max = quantifierCharacters[1]
                 i = 2
                 while i < len(quantifierCharacters):
@@ -159,14 +194,20 @@ def setClassQuantList(inString, quantifier):
                 i+=1
                 max = quantifierCharacters[i]
                 i+=1
-                while i < len(quantifierCharacters):
+                properLen = len(quantifierCharacters)
+                while i < properLen:
                     max += quantifierCharacters[i]
                     i+=1
                 max = int(max)
-                entry['max'] = max  
-                         
+                entry['max'] = max
+                
+        if entry['quantifier'] != 1:
+            updatedInString = inString + entry['quantifier']
+        else:
+            updatedInString = inString
         toReturn.append(entry)
-    return toReturn
+    return [toReturn, updatedInString]
+
 
 def partitionClass(inString):
     # partitions a class , i.e. [....] into pieces
