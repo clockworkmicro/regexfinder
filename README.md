@@ -10,7 +10,7 @@ Regexfinder is a set of tools to create and manipulate regular expressions. In p
 
 ## Size/complexity tradeoff
 
-A regular expression defines a set of strings. Our general intuition is that we want the regex to include as few strings as possible (i.e. be as small as possible) but also not be too long or complex. Regexfinder formalizes this tradeoff by using two ideas from information theory. The size of the regular expression is the [information theoretic entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) of a distribution on the regular expression (we start with the uniform distribution). And the complexity of the regular expression is the length of the length of the regular expressionwhich is motivated by [Kolmogorov Complexity](https://en.wikipedia.org/wiki/Kolmogorov_complexity). 
+A regular expression defines a set of strings. Our general intuition is that we want the regex to include as few strings as possible (i.e. be as small as possible) but also not be too long or complex. Regexfinder formalizes this tradeoff by using two ideas from information theory. The size of the regular expression is the [information theoretic entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) of a distribution on the regular expression (we start with the uniform distribution). And the complexity of the regular expression is the length of the regular expression which is motivated by [Kolmogorov Complexity](https://en.wikipedia.org/wiki/Kolmogorov_complexity). 
 
 Using a weight parameter *&alpha;*, *ent* for entropy and *K* for complexity, regexfinder minimizes
 
@@ -18,7 +18,7 @@ Using a weight parameter *&alpha;*, *ent* for entropy and *K* for complexity, re
 
 over regular expressions that contain a provided set of strings.
 
-For example, if the set of strings all have length 1 and contain the the digits 0,1,2,4,5,7,8,9, then an admissible regular expression is RE1 = [01245789]. If &alpha; = 1, then 
+For example, if the set of strings all have length 1 and contain the digits 0,1,2,4,5,7,8,9, then an admissible regular expression is RE1 = [01245789]. If &alpha; = 1, then 
 
 &phi;(RE1) = log2(8) + 10 = 13. 
 
