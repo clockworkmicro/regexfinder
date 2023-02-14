@@ -912,7 +912,7 @@ class GRAPH:
             else:
                 newQuantifier = self.createMergedParallelNodesQuantifier(nodeList)
                 
-            return NODE(vector=VECTOR(newv), quantifier=newQuantifier)
+            return NODE(vector=VECTOR(newv), simple=True, quantifier=newQuantifier)
         else:
             return False
     
@@ -943,7 +943,7 @@ class GRAPH:
             if sumLowestLows == sumHighestHighs:
                 return sumHighestHighs
             else:
-                return str((lowestLows,highestHighs))
+                return str((sumLowestLows,sumHighestHighs))
         else:
             return None
         
