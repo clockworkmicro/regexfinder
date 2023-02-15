@@ -797,23 +797,6 @@ class GRAPH:
                 sharedDescendantSets.add(tuple(set([x for y in matches for x in y])))
         return sharedDescendantSets
 
-    def parallelPartition(self):
-
-        sharedDescendantSets = self.getSharedDecendantSets()
-
-        parallel = []
-        for s in sharedDescendantSets:
-
-            nodes = set(s)
-            for node in s:
-                for descendant in self.getNodeDescendants(node):
-                    nodes.add(descendant)
-            parallel.append(nodes)
-        if len(parallel) == 1:
-            self.parallelGraphs = None
-        else:
-            for nodeSet in parallel:
-                self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
 
     def isMergeNodesValid(self, nodeList):
         
@@ -912,7 +895,7 @@ class GRAPH:
             else:
                 newQuantifier = self.createMergedParallelNodesQuantifier(nodeList)
                 
-            return NODE(vector=VECTOR(newv), simple=True, quantifier=newQuantifier)
+            return NODE(vector=VECTOR(newv), quantifier=newQuantifier)
         else:
             return False
     
@@ -951,6 +934,7 @@ class GRAPH:
     def mergeNodes(self, nodeList, nodeRelationship):
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
+        
         if isinstance(nodeRelationship, str):
             if not ((nodeRelationship.lower() == "sequential") or (nodeRelationship.lower() == "parallel")):
                 raise Exception("Node relationship is either 'sequential' or 'parallel'")
@@ -972,6 +956,12 @@ class GRAPH:
             
             self.nodes[mergedNode.id_] = mergedNode
             self.edges.extend(newEdgeList)
+            
+            if nodeRelationship.lower() == "sequential":
+                self.sequentialPartition()
+            else:
+                self.parallelPartition()
+            
         else:
             raise Exception("nodeList was not able to be merged")
 
@@ -1035,6 +1025,24 @@ class GRAPH:
         else:
             pass
         return
+    
+    def parallelPartition(self):
+
+        sharedDescendantSets = self.getSharedDecendantSets()
+
+        parallel = []
+        for s in sharedDescendantSets:
+
+            nodes = set(s)
+            for node in s:
+                for descendant in self.getNodeDescendants(node):
+                    nodes.add(descendant)
+            parallel.append(nodes)
+        if len(parallel) == 1:
+            self.parallelGraphs = None
+        else:
+            for nodeSet in parallel:
+                self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
 
     @property
     def cardinality(self):

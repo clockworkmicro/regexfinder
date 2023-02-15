@@ -515,8 +515,10 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(nodes=nodeDict, edges=e)
         g1.simplify()
         g1.partition()
-        g1.mergeNodes([n1.id_, n2.id_])
-        self.assertEqual('[ad]{2,3}', g1.outRegex)
+        g1.mergeNodes([n1.id_, n2.id_], "sequential")
+        g1.simplify()
+        g1.partition()
+        self.assertEqual('[ad]{5}', g1.outRegex)
 
     ###########################################
     ###     GRAPH MERGE LIMIT TESTS    ###
