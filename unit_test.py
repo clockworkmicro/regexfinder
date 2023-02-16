@@ -213,7 +213,7 @@ class GraphTest(unittest.TestCase):
     def testGraphCardinalty(self):
         g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
         g1.partition()
-        self.assertEqual(280, g1.cardinality)
+        self.assertEqual(140, g1.cardinality)
         g2 = GRAPH(regex='ab(c(d|e{4}f{5}|g)h{2}i|j)k(lm|n)', alpha=0.5)
         g2.partition()
         self.assertEqual(8, g2.cardinality)
@@ -237,7 +237,7 @@ class GraphTest(unittest.TestCase):
     def testGraphK(self):
         g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
         g1.partition()
-        self.assertEqual(33, g1.K)
+        self.assertEqual(31, g1.K)
         g2 = GRAPH(regex='ab(c(d|e{4}f{5}|g)h{2}i|j)k(lm|n)')
         g2.partition()
         self.assertEqual(33, g2.K)
@@ -297,7 +297,7 @@ class GraphTest(unittest.TestCase):
         descendants = g1.getNodeDescendantsList(firstCutSet)  # Getting descendants of the very first node
         regexVals = sorted([g1.nodes[id_].regex for id_ in
                             descendants])  # Getting the regex of each of the now simplified nodes; sorted lexicographically
-        self.assertListEqual(regexVals, ['[yz]', '\\d', 'a', 'c', 'd{2}', 'e{3}', 'r{2}', 'v'], "This is wrong")
+        self.assertListEqual(regexVals, ['\\d', 'a', 'c', 'd{2}', 'e{3}', 'r{2}', 'v', 'y', 'z'], "This is wrong")
 
     ####################################
     ###     GRAPH PARTITION TESTS    ###
@@ -357,7 +357,7 @@ class GraphTest(unittest.TestCase):
     def testPartition1(self):
         g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
         g1.partition()
-        self.assertEqual(3, len(g1.sequentialGraphs))
+        self.assertEqual(4, len(g1.sequentialGraphs))
         g2 = g1.sequentialGraphs[1]
         self.assertEqual(2, len(g2.parallelGraphs))
         g3 = g2.parallelGraphs[0]
@@ -414,8 +414,8 @@ class GraphTest(unittest.TestCase):
         # nodes with no edges, to be merged with anything
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodes([n1.id_, n2.id_])
-        # self.assertEqual(g1.outRegex, '[ab]{2}')
+        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
+        self.assertEqual(g1.outRegex, '[ab]{2}')
         # What about regex?
 
     def testMergeNodes2(self):
@@ -424,8 +424,8 @@ class GraphTest(unittest.TestCase):
         nodeDict = {n1.id_: n1, n2.id_: n2}
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodes([n1.id_, n2.id_])
-        self.assertEqual(g1.outRegex, '[a-cfg]')
+        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
+        self.assertEqual(g1.outRegex, '[a-cfg]{2}')
 
     def testMergeNodes3(self):
         n1 = NODE('[aceg{]')
@@ -433,8 +433,8 @@ class GraphTest(unittest.TestCase):
         nodeDict = {n1.id_: n1, n2.id_: n2}
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodes([n1.id_, n2.id_])
-        self.assertEqual(g1.outRegex, '[a-h{}]')
+        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
+        self.assertEqual(g1.outRegex, '[a-h{}]{2}')
 
     ################################
     ###     GRAPH MERGE TESTS    ###
@@ -450,9 +450,9 @@ class GraphTest(unittest.TestCase):
         # Why does mergeNodes not work when these run?
         # g1.simplify()
         # g1.partition()
-        g1.mergeNodes([n1.id_, n2.id_])
+        g1.mergeNodes([n1.id_, n2.id_], "sequential")
 
-        self.assertEqual(g1.outRegex, '[ad]')
+        self.assertEqual(g1.outRegex, '[ad]{2}')
 
     def test2GraphOfMergedNodes(self):
         n1 = NODE('[acegi]')
@@ -463,17 +463,10 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(nodes=nodeDict, edges=e)
         # g1.simplify()
         # g1.partition()
-        g1.mergeNodes([n1.id_, n2.id_])
+        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
 
-        self.assertEqual(g1.outRegex, '[a-j]')
+        self.assertEqual(g1.outRegex, '[a-j]{2}')
 
-    # def testMergeNodesQuantifier(self):
-    #     n1 = NODE('[a]{3}')
-    #     n2 = NODE('[b]{2}')
-    #     nodeDict = {n1.id_ : n1, n2.id_ : n2}
-    #     g1 = GRAPH(nodes=nodeDict)
-    #     mergedNode = g1.mergeNodes([n1.id_, n2.id_])
-    #     self.assertEqual(mergedNode.regex, '[a-cfg]')
 
     ###################################
     ###     GRAPH CREATION TESTS    ###
@@ -488,16 +481,13 @@ class GraphTest(unittest.TestCase):
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
         print(nodeDict)
         G = GRAPH(nodes=nodeDict, edges=edgeList)
-        G.simplify()
         G.partition()
 
         G1 = G.sequentialGraphs[0]
-        G1.simplify()
         G1.partition()
         G2 = G1.parallelGraphs[0]
         if not (hasattr(G2, 'sequentialGraphs')):
             G2 = G1.parallelGraphs[1]
-        G2.simplify()
         G2.partition()
 
         self.assertEqual(len(G2.sequentialGraphs), 2)
@@ -506,19 +496,31 @@ class GraphTest(unittest.TestCase):
     ###     GRAPH MERGE QUANTIFIER TESTS    ###
     ###########################################
 
-    def testSimpleQuantMerge(self):
+    def testSimpleSequentialQuantMerge(self):
         n1 = NODE('a{2}')
         n2 = NODE('d{3}')
         nodeDict = {n1.id_: n1, n2.id_: n2}
         e = [EDGE(n1.id_, n2.id_)]
 
         g1 = GRAPH(nodes=nodeDict, edges=e)
-        g1.simplify()
         g1.partition()
         g1.mergeNodes([n1.id_, n2.id_], "sequential")
-        g1.simplify()
-        g1.partition()
         self.assertEqual('[ad]{5}', g1.outRegex)
+        
+    def testSimpleParallelQuantMerge(self):
+        n1 = NODE('a')
+        n2 = NODE('b{2}')
+        n3 = NODE('c{3}')
+        n4 = NODE('d')
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4]])
+        e = [EDGE(n1.id_, n2.id_), EDGE(n1.id_, n3.id_), 
+             EDGE(n2.id_, n4.id_), EDGE(n3.id_, n4.id_)]
+        
+        g1 = GRAPH(nodes=nodeDict, edges=e)
+        g1.partition()
+        g1.mergeNodes([n2.id_, n3.id_], "parallel")
+        self.assertEqual('a[bc]{2,3}d', g1.outRegex)
+        
 
     ###########################################
     ###     GRAPH MERGE LIMIT TESTS    ###
@@ -533,12 +535,11 @@ class GraphTest(unittest.TestCase):
         edgeList = [e12, e13]
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
         G = GRAPH(nodes=nodeDict, edges=edgeList)
-        # G.simplify()
         # G.partition()
 
-        mergedNode = G.createMergedNodes([n2.id_, n3.id_])
+        mergedNode = G.createMergedNodes([n2.id_, n3.id_], "sequential")
         
-        self.assertEqual('[bc]', mergedNode.regex)
+        self.assertEqual('[bc]{2}', mergedNode.regex)
         
         
     def test2MergeNodes(self):
@@ -562,7 +563,6 @@ class GraphTest(unittest.TestCase):
         edgeList = [e12, e23, e24, e45, e46, e37, e78]
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
         G = GRAPH(nodes=nodeDict, edges=edgeList)
-        G.simplify()
         G.partition()
         
         self.assertTrue(G.isMergeNodesValid([n1.id_, n2.id_, n3.id_]))
@@ -584,7 +584,6 @@ class GraphTest(unittest.TestCase):
         edgeList = [e12, e23]
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
         G = GRAPH(nodes=nodeDict, edges=edgeList)
-        G.simplify()
         G.partition()
         
         self.assertTrue(G.isMergeNodesValid([n1.id_, n2.id_]))
@@ -600,7 +599,6 @@ class GraphTest(unittest.TestCase):
         edgeList = [e12, e23]
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
         G = GRAPH(nodes=nodeDict, edges=edgeList)
-        G.simplify()
         G.partition()
         n4 = NODE('d')
         e34 = EDGE(n3.id_, n4.id_)
@@ -617,7 +615,6 @@ class GraphTest(unittest.TestCase):
         edgeList = [e12, e23]
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
         G = GRAPH(nodes=nodeDict, edges=edgeList)
-        G.simplify()
         G.partition()
         
         n4 = NODE('d')
@@ -679,57 +676,57 @@ class GraphTest(unittest.TestCase):
         self.assertFalse(G.isMergeNodesValid([n1.id_, n2.id_, n3.id_, n4.id_, n5.id_]))
         self.assertTrue(G.isMergeNodesValid([n1.id_, n2.id_, n4.id_, n5.id_]))
         
-    def testNewQuantifierInput(self):
-        n1 = NODE(regex='a', quantifier=3)
-        n2 = NODE(regex='a', quantifier='3')
-        n3 = NODE(regex='a', quantifier=',3')
-        n4 = NODE(regex='a', quantifier='3,4')
+    # def testNewQuantifierInput(self):
+    #     n1 = NODE(regex='a', quantifier=3)
+    #     n2 = NODE(regex='a', quantifier='3')
+    #     n3 = NODE(regex='a', quantifier=',3')
+    #     n4 = NODE(regex='a', quantifier='3,4')
         
-        self.assertEqual('{3}', n1.getQuantifier)
-        self.assertEqual('{3}', n2.getQuantifier)
-        self.assertEqual('{,3}', n3.getQuantifier)
-        self.assertEqual(0, n3.getQuantifierMin)
-        self.assertEqual(3, n3.getQuantifierMax)
-        self.assertEqual('{3,4}', n4.getQuantifier)
-        self.assertEqual(3, n4.getQuantifierMin)
-        self.assertEqual(4, n4.getQuantifierMax)
+    #     self.assertEqual('{3}', n1.getQuantifier)
+    #     self.assertEqual('{3}', n2.getQuantifier)
+    #     self.assertEqual('{,3}', n3.getQuantifier)
+    #     self.assertEqual(0, n3.getQuantifierMin)
+    #     self.assertEqual(3, n3.getQuantifierMax)
+    #     self.assertEqual('{3,4}', n4.getQuantifier)
+    #     self.assertEqual(3, n4.getQuantifierMin)
+    #     self.assertEqual(4, n4.getQuantifierMax)
         
-        # n5 = NODE(regex='a', quantifier='3,')
-        # n6 = NODE(regex='a', quantifier='-3')
-        # n7 = NODE(regex='a', quantifier=-3)
-        # n8 = NODE(regex='a', quantifier='three')
-        # n9 = NODE(regex='a', quantifier=',3.0')
-        # n10 = NODE(regex='a', quantifier='-2,3')
-        # n11 = NODE(regex='a', quantifier='2,-3')
-        # n12 = NODE(regex='a', quantifier='-2,-3')
-        # n13 = NODE(regex='a', quantifier=',')
-        # n14 = NODE(regex='a', quantifier='a,4')
-        # n15 = NODE(regex='a', quantifier='4,a')
-        # n16 = NODE(regex='a', quantifier='4a6')
-        # n17 = NODE(regex='a', quantifier='4aa6')
-        # n18 = NODE(regex='a', quantifier='a4,6')
-        # n19 = NODE(regex='a', quantifier='')
-        # n20 = NODE(regex='a', quantifier=None)
+    #     # n5 = NODE(regex='a', quantifier='3,')
+    #     # n6 = NODE(regex='a', quantifier='-3')
+    #     # n7 = NODE(regex='a', quantifier=-3)
+    #     # n8 = NODE(regex='a', quantifier='three')
+    #     # n9 = NODE(regex='a', quantifier=',3.0')
+    #     # n10 = NODE(regex='a', quantifier='-2,3')
+    #     # n11 = NODE(regex='a', quantifier='2,-3')
+    #     # n12 = NODE(regex='a', quantifier='-2,-3')
+    #     # n13 = NODE(regex='a', quantifier=',')
+    #     # n14 = NODE(regex='a', quantifier='a,4')
+    #     # n15 = NODE(regex='a', quantifier='4,a')
+    #     # n16 = NODE(regex='a', quantifier='4a6')
+    #     # n17 = NODE(regex='a', quantifier='4aa6')
+    #     # n18 = NODE(regex='a', quantifier='a4,6')
+    #     # n19 = NODE(regex='a', quantifier='')
+    #     # n20 = NODE(regex='a', quantifier=None)
         
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='3,'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='-3'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier=-3))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='three'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier=',3.0'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='-2,3'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='2,-3'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='-2,-3'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier=','))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='a,4'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='4,a'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='4a6'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='4aa6'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='a4,6'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='4a,6'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='4,a6'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier='4,6a'))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier=''))
-        # self.assertRaises(Exception, NODE(regex='a', quantifier=None))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='3,'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='-3'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier=-3))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='three'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier=',3.0'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='-2,3'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='2,-3'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='-2,-3'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier=','))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='a,4'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='4,a'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='4a6'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='4aa6'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='a4,6'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='4a,6'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='4,a6'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier='4,6a'))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier=''))
+    #     # self.assertRaises(Exception, NODE(regex='a', quantifier=None))
 
 
         

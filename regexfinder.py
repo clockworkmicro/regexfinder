@@ -911,7 +911,7 @@ class GRAPH:
                 # this return should be used to initialize a node,
                 # which will run getClassQuantList and that code
                 # handles a tuple as a string, for now
-                return str((lowestLow,highestHigh))
+                return str((str(lowestLow) + "," + str(highestHigh)))
         else:
             return None
         
@@ -926,9 +926,9 @@ class GRAPH:
             if sumLowestLows == sumHighestHighs:
                 return sumHighestHighs
             else:
-                return str((sumLowestLows,sumHighestHighs))
+                return str((str(sumLowestLows) + "," + str(sumHighestHighs)))
         else:
-            return None
+            return len(nodeList)
         
         
     def mergeNodes(self, nodeList, nodeRelationship):
@@ -961,6 +961,8 @@ class GRAPH:
                 self.sequentialPartition()
             else:
                 self.parallelPartition()
+                
+            self.partition()
             
         else:
             raise Exception("nodeList was not able to be merged")
