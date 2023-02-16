@@ -521,6 +521,27 @@ class GraphTest(unittest.TestCase):
         g1.mergeNodes([n2.id_, n3.id_], "parallel")
         self.assertEqual('a[bc]{2,3}d', g1.outRegex)
         
+    def testMultiQuantifierMerge(self):
+        regex = '\d{2}([a-m]{2}[n-z]{2}|[A-Z]{4})\d'
+        G = GRAPH(regex=regex)
+        G.partition()
+        
+        nodeIds1 = []
+        for key in G.nodes:
+            if G.nodes[key].regex == '[a-m]{2}' or G.nodes[key].regex == '[n-z]{2}':
+                nodeIds1.append(key)
+        G.mergeNodes(nodeIds1, 'sequential')
+        self.assertEqual("\d{2}([A-Z]{4}|[a-z]{4})\d", G.outRegex)
+        
+        nodeIds2 = []
+        for key in G.nodes:
+            # print(key + ", " + G.nodes[key].regex)
+            if G.nodes[key].regex == '[A-Z]{4}' or G.nodes[key].regex == '[a-z]{4}':
+                nodeIds2.append(key)
+        G.mergeNodes(nodeIds2, 'parallel')
+        self.assertEqual("\d{2}[A-Za-z]{4}\d", G.outRegex)
+
+        
 
     ###########################################
     ###     GRAPH MERGE LIMIT TESTS    ###
