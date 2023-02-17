@@ -54,21 +54,21 @@ class NODE:
         if self.simple:
             return self.classQuantList[0]['quantifier']
         else:
-            return False
+            raise Exception("Node is not simple")
         
     @property
     def getQuantifierMin(self):
         if self.simple:
             return self.classQuantList[0]['min']
         else:
-            return False    
+            raise Exception("Node is not simple")    
         
     @property
     def getQuantifierMax(self):
         if self.simple:
             return self.classQuantList[0]['max']
         else:
-            return False
+            raise Exception("Node is not simple")
         
     def mergeQuantifiers(self, nodeList):
         nodeList.append(self)
@@ -221,8 +221,11 @@ class EDGE:
     def __init__(self, parent, child, words=None):
         if words is None:
             words = []
-        self.parent = parent
-        self.child = child
+        if parent != child:
+            self.parent = parent
+            self.child = child
+        else:
+            raise Exception("Parent and child cannot be the same")
         self.words = words
 
 
@@ -414,7 +417,9 @@ class GRAPH:
 
         elif nodes:
             self.nodes = nodes
-            self.edges = edges
+            if edges:
+                for edge in edges:
+                    self.addEdge(edge)
 
         else:
             pass
@@ -481,6 +486,8 @@ class GRAPH:
         for gEdge in self.edges:
             if edge == gEdge:
                 raise Exception("Edge already exists")
+        if edge.parent not in self.nodes.keys() or edge.child not in self.nodes.keys():
+            raise Exception("Parent or Child node does not exist")
         self.edges.append(edge)
 
     def getEdge(self, parent, child):
@@ -543,6 +550,9 @@ class GRAPH:
             else:
                 self.sequentialPartition()
                 [g.partition() for g in self.sequentialGraphs]
+                
+    def recursiveMerge(self):
+        return
 
     def simplify(self):
         while self.getNotSimple():

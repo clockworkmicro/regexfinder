@@ -540,6 +540,19 @@ class GraphTest(unittest.TestCase):
                 nodeIds2.append(key)
         G.mergeNodes(nodeIds2, 'parallel')
         self.assertEqual("\d{2}[A-Za-z]{4}\d", G.outRegex)
+        
+        
+    def testEdgeAddFail(self):
+        n1 = NODE('a')
+        edge = EDGE(n1.id_, "Nonexisting Key")
+        nodeDict = dict([(n1.id_, n1)])
+        
+        g1 = GRAPH(nodes=nodeDict)
+        g1.addEdge(edge)
+        
+    def testFailedEdgeCreation(self):
+        edge = EDGE("Same Word", "Same Word")
+        
 
         
 
@@ -595,6 +608,8 @@ class GraphTest(unittest.TestCase):
         self.assertFalse(G.isMergeNodesValid([n2.id_, n5.id_, n6.id_]))
         
         self.assertTrue(G.isMergeNodesValid([n5.id_, n6.id_, n8.id_]))
+        
+        # G.mergeNodes([n1.id_, n2.id_, n3.id_, n4.id_], )
         
     def testGraphMergedNodes(self):
         n1 = NODE('a')
