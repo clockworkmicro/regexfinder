@@ -548,10 +548,12 @@ class GraphTest(unittest.TestCase):
         nodeDict = dict([(n1.id_, n1)])
         
         g1 = GRAPH(nodes=nodeDict)
-        g1.addEdge(edge)
+        with self.assertRaises(Exception):
+            g1.addEdge(edge)
         
     def testFailedEdgeCreation(self):
-        edge = EDGE("Same Word", "Same Word")
+        with self.assertRaises(Exception):
+            EDGE("Same Word", "Same Word")
         
 
         
