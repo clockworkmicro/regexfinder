@@ -447,7 +447,12 @@ class GRAPH:
             pass
         
         
-        
+    @property
+    def nodeKeysList(self):
+        nkl = []
+        for x in self.nodes:
+            nkl.append(x.id_)
+        return nkl
         
     def removeNodeAndEdges(self, nodeList):
         # upperEdges = []
@@ -812,7 +817,8 @@ class GRAPH:
         
         if self.getLonelyNodes():
             if any(node in self.getLonelyNodes() for node in nodeList):
-                return False
+                if self.edges:
+                    return False
         
         nodeAncestorsList = []
         nodeDescendantsList = []
@@ -941,7 +947,8 @@ class GRAPH:
             return len(nodeList)
         
         
-    def mergeNodes(self, nodeList, nodeRelationship):
+    def mergeRelatedNodes(self, nodeList, nodeRelationship):
+        # print(nodeList)
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
         
@@ -953,6 +960,19 @@ class GRAPH:
     
         mergedNode = self.createMergedNodes(nodeList, nodeRelationship)
         
+        self.graphStichIn(nodeList, nodeRelationship, mergedNode)
+        
+    def graphStichIn(self, nodeList, nodeRelationship, mergedNode):
+
+        # nodeList is a list of ids,
+        # while mergedNodes is an actual node
+
+        if isinstance(nodeRelationship, str):
+            if not ((nodeRelationship.lower() == "sequential") or (nodeRelationship.lower() == "parallel")):
+                raise Exception("Node relationship is either 'sequential' or 'parallel'")
+        else:
+            raise Exception("Node relationship should be a string 'sequential' or 'parallel'")
+
         if isinstance(mergedNode, NODE): 
             newEdgeList = []
             
@@ -973,10 +993,109 @@ class GRAPH:
                 self.parallelPartition()
                 
             self.partition()
-            
         else:
             raise Exception("nodeList was not able to be merged")
 
+        
+    def getNodeIdListGraph(self, nodeList):
+        necessaryEdges = []
+        
+        for edge in self.edges:
+            if edge.parent in nodeList and edge.child in nodeList:
+                necessaryEdges.append(edge)
+                
+        nodeDict = dict([(n, self.nodes[n]) for n in nodeList])
+        
+        nodeListGraph = GRAPH(nodes=nodeDict, edges=necessaryEdges)
+        
+        return nodeListGraph
+                
+    def getNodeListGraph(self, nodeList):
+        necessaryEdges = []
+        
+        for edge in self.edges:
+            if (any(edge.parent in n.id_ for n in nodeList)) and (any(edge.parent in n.id_ for n in nodeList)):
+                necessaryEdges.append(edge)
+                
+        nodeDict = dict([(n.id_, n) for n in nodeList])
+        
+        nodeListGraph = GRAPH(nodes=nodeDict, edges=necessaryEdges)
+        
+        return nodeListGraph
+    
+    def mergeToNodeRecursive(self):
+        self.simplify()
+        self.parallelPartition()
+        if self.parallelGraphs:
+            mergeType = "parallel"
+            graphWasChanged = False
+            changedNodes = []
+            for x in self.parallelGraphs:
+                if len(x.nodes) != 1:
+                    graphWasChanged = True
+                    nodeInfoList = x.mergeToNodeRecursive()
+                    for infoList in nodeInfoList:
+                        changedNodes.append(infoList)
+
+            if graphWasChanged:
+                for nodeTuple in changedNodes:
+                    self.graphStichIn(nodeTuple[1], mergeType, nodeTuple[0])
+
+            nodeList = []
+
+            for x in self.nodes:
+                nodeList.append(x)
+                # merge all nodes in parallel graphs
+            self.mergeRelatedNodes(nodeList, mergeType)
+        else:
+            mergeType = "sequential"
+            self.sequentialPartition()
+            graphWasChanged = False
+            changedNodes = []
+            for x in self.sequentialGraphs:
+                if len(x.nodes) != 1:
+                    graphWasChanged = True
+                    nodeInfoList = x.mergeToNodeRecursive()
+                    for infoList in nodeInfoList:
+                        changedNodes.append(infoList)
+
+            if graphWasChanged:
+                for nodeTuple in changedNodes:
+                    self.graphStichIn(nodeTuple[1], mergeType, nodeTuple[0])
+
+            nodeList = []
+
+            for x in self.nodes:
+                nodeList.append(x)
+                # merge all nodes in sequential graphs
+            self.mergeRelatedNodes(nodeList, mergeType)
+
+        for x in self.nodes:
+            changedNodes.append((self.nodes[x], nodeList, mergeType))
+            return changedNodes
+
+    def mergeNodeIds(self, nodeList):
+        
+        # A graph made up of only the nodes
+        nodeIdGraph = self.getNodeIdListGraph(nodeList)
+        
+        # Makes a one node graph of those nodes
+        fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
+
+        for nodeTuple in fullyMergedNodeInstructions:
+            self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
+            
+    def mergeNodes(self, nodeList):
+        
+        # A graph made up of only the nodes
+        nodeIdGraph = self.getNodeListGraph(nodeList)
+        
+        # Makes a one node graph of those nodes
+        fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
+
+        for nodeTuple in fullyMergedNodeInstructions:
+            self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
+            
     def createSubGraph(self, nodeList):
         subNodes = {}
         subEdges = []

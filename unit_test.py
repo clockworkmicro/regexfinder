@@ -414,7 +414,7 @@ class GraphTest(unittest.TestCase):
         # nodes with no edges, to be merged with anything
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
+        g1.mergeRelatedNodes([n1.id_, n2.id_], 'sequential')
         self.assertEqual(g1.outRegex, '[ab]{2}')
         # What about regex?
 
@@ -424,7 +424,7 @@ class GraphTest(unittest.TestCase):
         nodeDict = {n1.id_: n1, n2.id_: n2}
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
+        g1.mergeRelatedNodes([n1.id_, n2.id_], 'sequential')
         self.assertEqual(g1.outRegex, '[a-cfg]{2}')
 
     def testMergeNodes3(self):
@@ -433,7 +433,7 @@ class GraphTest(unittest.TestCase):
         nodeDict = {n1.id_: n1, n2.id_: n2}
         edge = EDGE(n1.id_, n2.id_)
         g1 = GRAPH(nodes=nodeDict, edges=[edge])
-        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
+        g1.mergeRelatedNodes([n1.id_, n2.id_], 'sequential')
         self.assertEqual(g1.outRegex, '[a-h{}]{2}')
 
     ################################
@@ -450,7 +450,7 @@ class GraphTest(unittest.TestCase):
         # Why does mergeNodes not work when these run?
         # g1.simplify()
         # g1.partition()
-        g1.mergeNodes([n1.id_, n2.id_], "sequential")
+        g1.mergeRelatedNodes([n1.id_, n2.id_], "sequential")
 
         self.assertEqual(g1.outRegex, '[ad]{2}')
 
@@ -463,7 +463,7 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(nodes=nodeDict, edges=e)
         # g1.simplify()
         # g1.partition()
-        g1.mergeNodes([n1.id_, n2.id_], 'sequential')
+        g1.mergeRelatedNodes([n1.id_, n2.id_], 'sequential')
 
         self.assertEqual(g1.outRegex, '[a-j]{2}')
 
@@ -504,7 +504,7 @@ class GraphTest(unittest.TestCase):
 
         g1 = GRAPH(nodes=nodeDict, edges=e)
         g1.partition()
-        g1.mergeNodes([n1.id_, n2.id_], "sequential")
+        g1.mergeRelatedNodes([n1.id_, n2.id_], "sequential")
         self.assertEqual('[ad]{5}', g1.outRegex)
         
     def testSimpleParallelQuantMerge(self):
@@ -518,7 +518,7 @@ class GraphTest(unittest.TestCase):
         
         g1 = GRAPH(nodes=nodeDict, edges=e)
         g1.partition()
-        g1.mergeNodes([n2.id_, n3.id_], "parallel")
+        g1.mergeRelatedNodes([n2.id_, n3.id_], "parallel")
         self.assertEqual('a[bc]{2,3}d', g1.outRegex)
         
     def testMultiQuantifierMerge(self):
@@ -530,7 +530,7 @@ class GraphTest(unittest.TestCase):
         for key in G.nodes:
             if G.nodes[key].regex == '[a-m]{2}' or G.nodes[key].regex == '[n-z]{2}':
                 nodeIds1.append(key)
-        G.mergeNodes(nodeIds1, 'sequential')
+        G.mergeRelatedNodes(nodeIds1, 'sequential')
         self.assertEqual("\d{2}([A-Z]{4}|[a-z]{4})\d", G.outRegex)
         
         nodeIds2 = []
@@ -538,7 +538,7 @@ class GraphTest(unittest.TestCase):
             # print(key + ", " + G.nodes[key].regex)
             if G.nodes[key].regex == '[A-Z]{4}' or G.nodes[key].regex == '[a-z]{4}':
                 nodeIds2.append(key)
-        G.mergeNodes(nodeIds2, 'parallel')
+        G.mergeRelatedNodes(nodeIds2, 'parallel')
         self.assertEqual("\d{2}[A-Za-z]{4}\d", G.outRegex)
         
         
@@ -573,9 +573,9 @@ class GraphTest(unittest.TestCase):
         G = GRAPH(nodes=nodeDict, edges=edgeList)
         # G.partition()
 
-        mergedNode = G.createMergedNodes([n2.id_, n3.id_], "sequential")
+        mergedNode = G.createMergedNodes([n1.id_, n2.id_, n3.id_], "sequential")
         
-        self.assertEqual('[bc]{2}', mergedNode.regex)
+        self.assertEqual('[a-c]{3}', mergedNode.regex)
         
         
     def test2MergeNodes(self):
@@ -626,6 +626,63 @@ class GraphTest(unittest.TestCase):
         
         self.assertTrue(G.isMergeNodesValid([n1.id_, n2.id_]))
         self.assertFalse(G.isMergeNodesValid([n1.id_, n3.id_]))
+        
+    def testFullGraphMerge(self):
+        n1 = NODE('[a1]')
+        n2 = NODE('[b2]')
+        n3 = NODE('[c3]')
+        n4 = NODE('[d4]')
+        n5 = NODE('[e5]')
+        n6 = NODE('[f6]')
+        n7 = NODE('[g7]')
+        n8 = NODE('[h8]')
+
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        e24 = EDGE(n2.id_, n4.id_)
+        e45 = EDGE(n4.id_, n5.id_)
+        e46 = EDGE(n4.id_, n6.id_)
+        e57 = EDGE(n5.id_, n7.id_)
+        e67 = EDGE(n6.id_, n7.id_)
+        e37 = EDGE(n3.id_, n8.id_)
+        e78 = EDGE(n7.id_, n8.id_)
+
+        edgeList = [e12, e23, e24, e45, e46, e37, e57, e67, e78]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.simplify()
+        # G.createVisual()
+
+        G.mergeNodeIds([n1.id_, n2.id_, n3.id_, n4.id_, n5.id_, n6.id_, n7.id_, n8.id_])
+        self.assertEqual("[1-8a-h]{3}", G.outRegex)
+        
+        n1 = NODE('[a1]')
+        n2 = NODE('[b2]')
+        n3 = NODE('[c3]')
+        n4 = NODE('[d4]')
+        n5 = NODE('[e5]')
+        n6 = NODE('[f6]')
+        n7 = NODE('[g7]')
+        n8 = NODE('[h8]')
+
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        e24 = EDGE(n2.id_, n4.id_)
+        e45 = EDGE(n4.id_, n5.id_)
+        e46 = EDGE(n4.id_, n6.id_)
+        e57 = EDGE(n5.id_, n7.id_)
+        e67 = EDGE(n6.id_, n7.id_)
+        e37 = EDGE(n3.id_, n8.id_)
+        e78 = EDGE(n7.id_, n8.id_)
+
+        edgeList = [e12, e23, e24, e45, e46, e37, e57, e67, e78]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.simplify()
+        
+        G.mergeNodes([n1, n2, n3, n4, n5, n6, n7, n8])
+        self.assertEqual("[1-8a-h]{3}", G.outRegex)
+
         
         
     def testAddNodes(self):
