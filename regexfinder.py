@@ -1076,25 +1076,27 @@ class GRAPH:
 
     def mergeNodeIds(self, nodeList):
         
-        # A graph made up of only the nodes
-        nodeIdGraph = self.getNodeIdListGraph(nodeList)
-        
-        # Makes a one node graph of those nodes
-        fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
+        if len(nodeList) > 1:
+            # A graph made up of only the nodes
+            nodeIdGraph = self.getNodeIdListGraph(nodeList)
+            
+            # Makes a one node graph of those nodes
+            fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
 
-        for nodeTuple in fullyMergedNodeInstructions:
-            self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
+            for nodeTuple in fullyMergedNodeInstructions:
+                self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
             
     def mergeNodes(self, nodeList):
-        
-        # A graph made up of only the nodes
-        nodeIdGraph = self.getNodeListGraph(nodeList)
-        
-        # Makes a one node graph of those nodes
-        fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
 
-        for nodeTuple in fullyMergedNodeInstructions:
-            self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
+        if len(nodeList) > 1:
+            # A graph made up of only the nodes
+            nodeIdGraph = self.getNodeListGraph(nodeList)
+            
+            # Makes a one node graph of those nodes
+            fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
+
+            for nodeTuple in fullyMergedNodeInstructions:
+                self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
             
     def createSubGraph(self, nodeList):
         subNodes = {}
