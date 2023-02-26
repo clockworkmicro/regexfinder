@@ -1,5 +1,4 @@
 import re
-from typing import overload
 
 def strNumberGenerator():
      number = 0
@@ -82,6 +81,9 @@ def removeOuterParenthesesOrBrackets(inString):
         return inString
     
 def getClassQuantList(inString):
+    '''
+    Returns a list of quantifier data, being 'class', 'quantifier', 'min' and 'max'.
+    '''
     matches = re.finditer(r"(\[[^]]+\]|\\d|\\w|\\W|.)(\?|\+|\*|\{\d?,?\d?\})?" ,inString)
     toReturn = []
     for match in matches:
@@ -122,6 +124,11 @@ def getClassQuantList(inString):
 
 
 def setClassQuantList(inString, quantifier):
+    '''
+    Returns a list of quantifier data, being 'class', 'quantifier', 'min' and 'max', built from a given quantifier,
+    as well as an updated inString to couple with the new quantifier.
+    Quantifier must be an integer or string containing integers. Quantifier must have a bounded maximum.
+    '''
     if isinstance(quantifier, int):
         if quantifier < 1:
             raise Exception('Quantifier must be greater than 0')
