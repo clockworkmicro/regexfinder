@@ -11,7 +11,7 @@ from utils import *
 
 
 class NODE:
-    def __init__(self, regex=None, vector=None, simple=True, replaced=False, alpha=1, quantifier=None):
+    def __init__(self, regex=None, vector=None, replaced=False, alpha=1, quantifier=None):
         '''
         Node creation is defined firstly by a regex. If a regex is provided with a vector and/or quantifier,
         the latter two will be ignored and the node will be created from the given regex. If a regex
@@ -968,14 +968,17 @@ class GRAPH:
             self.nodes[id_].replaced = True
             toString = lambda d: d['class'] + str(d['quantifier']) if d['quantifier'] else d['class']
 
-            n = NODE(regex=toString(cQList[0]), simple=True)
+            # Currently the simple parameter does nothing
+            # n = NODE(regex=toString(cQList[0]), simple=True)
+            n = NODE(regex=toString(cQList[0]))
             self.addNode(n)
             previous = n.id_
             for parent in parents:
                 self.addEdge(EDGE(parent, n.id_))
                 self.removeEdge(parent, self.nodes[id_].id_)
             for cQ in cQList[1:]:
-                n = NODE(regex=toString(cQ), simple=True)
+                # n = NODE(regex=toString(cQ), simple=True)
+                n = NODE(regex=toString(cQ))
                 self.addNode(n)
                 self.addEdge(EDGE(previous, n.id_))
                 previous = n.id_
@@ -1208,7 +1211,7 @@ class GRAPH:
 
     # CREATESUBGRAPH
         
-    # def getNodeIdListGraph(self, nodeList):
+    # def createSubGraph(self, nodeList):
     #     '''
     #     Returns a GRAPH object with nodes and edges made up of all node IDs given.
     #     '''
@@ -1299,7 +1302,7 @@ class GRAPH:
         '''
         if len(nodeList) > 1:
             # A graph made up of only the nodes
-            nodeIdGraph = self.getNodeIdListGraph(nodeList)
+            nodeIdGraph = self.createSubGraph(nodeList)
             
             # Makes a one node graph of those nodes
             fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
@@ -1425,8 +1428,8 @@ class GRAPH:
         '''
         Returns a tuple of a list of all keys and nodes, respectively.
         '''
-        nkl = [x for x in self.nodes.keys]
-        nl = [x for x in self.nodes.items]
+        nkl = [x for x in self.nodes.keys()]
+        nl = [x for x in self.nodes.items()]
         return (nkl, nl)
 
     @property
