@@ -756,6 +756,8 @@ class GRAPH:
         """
         Returns a list of node IDs of descendants, the children of all of each node's children
         """
+        if not isinstance(inList, list):
+            raise Exception(('value inList must be a list'))
         toReturn = []
         for id_ in inList:
             toReturn += self.getNodeDescendants(id_)
