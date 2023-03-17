@@ -899,8 +899,8 @@ class GRAPH:
         Creates and displays a PDF file of the structure of the graph, regardless of simplification
         level.
         """
-        self.partition()
-        self.reduce()
+        #self.partition()
+        #self.reduce()
 
         dot = Digraph()
         # dot.node('',shape='point')
@@ -1482,17 +1482,14 @@ class GRAPH:
         
 
     def sequentialPartition(self):
-        """
-        CHECK
-        """
+
         sequentialGraphsNodes = []
         cutSets = self.getCutSets()
         noParents = self.getNodesNoParents()
 
         currentSet = noParents
-
         nextCutSet = self.getNextCutSet(currentSet[0])
-        descendantList = self.getNodeDescendantsList(currentSet[0])
+        descendantList = self.getNodeDescendantsList(currentSet)
         if not nextCutSet and descendantList:
             if currentSet in cutSets:
                 sequentialGraphsNodes.append(currentSet)

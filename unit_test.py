@@ -280,6 +280,13 @@ class GraphTest(unittest.TestCase):
         self.assertListEqual(regexVals, ['b', 'c', 'd', 'e'], "The next cut set corresponds to f|g")
 
     def testGetNodeDescendantsList(self):
+        g1 = GRAPH(regex='a(bc|de')
+        g1.simplify()
+        firstCutSet = [key for key, node in g1.nodes.items() if node.regex == 'a']
+        descendants = g1.getNodeDescendantsList(firstCutSet)
+        self.assertEqual(len(descendants),4)
+
+    def testGetNodeDescendantsList2(self):
         g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
         g1.simplify()
         firstCutSet = [key for key, node in g1.nodes.items() if node.regex == 'a']
@@ -310,7 +317,13 @@ class GraphTest(unittest.TestCase):
         g1.partition()
         self.assertEqual(len(g1.parallelGraphs), 2)
 
-    def testSequentialPartition(self):
+    def testSequentialPartition1(self):
+        g1 = GRAPH(regex='a(bc|de)')
+        g1.simplify()
+        g1.sequentialPartition()
+        self.assertIsNotNone(g1.sequentialGraphs)
+
+    def testSequentialPartition2(self):
         g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
         g1.simplify()
         g1.sequentialPartition()
