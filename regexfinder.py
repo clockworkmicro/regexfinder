@@ -1038,11 +1038,11 @@ class GRAPH:
 
             for currNodeAncestItem in currNodeAncestors:
                 if currNodeAncestItem not in nodeAncestorsList:
-                    nodeAncestorsList.append(currNodeAncestItem)
+                    nodeAncestorsList.append(self.getNodeAncestors(n))
 
             for currNodeDescItem in currNodeDescendants:
                 if currNodeDescItem not in nodeDescendantsList:
-                    nodeDescendantsList.append(currNodeDescItem)
+                    nodeDescendantsList.append(self.getNodeDescendants(n))
 
         # List of ids
         topNodes = []
@@ -1260,6 +1260,7 @@ class GRAPH:
         """
         self.simplify()
         self.parallelPartition()
+        # self.partition()
         changedNodes = []
         nodeList = []
         if self.parallelGraphs:
@@ -1283,6 +1284,7 @@ class GRAPH:
         else:
             mergeType = "sequential"
             self.sequentialPartition()
+            # self.sequentialPartition()
             graphWasChanged = False
             for x in self.sequentialGraphs:
                 if len(x.nodes) != 1:
@@ -1342,7 +1344,7 @@ class GRAPH:
         """
         Merges every node into one node
         """
-        self.mergeNodeIds(self.nodesAndKeysList[0])
+        self.mergeNodeIds(list(self.nodes.keys()))
 
     def createSubGraph(self, nodeList):
         """
@@ -1436,9 +1438,20 @@ class GRAPH:
     
     def phiReduction(self, k): # This will merge every set that lowers phi; but another method could 
                             # merge, then make the new graph from that new node and try again
+        if len(self.nodes.keys()) == 1:
+            return True
+        
         subSets = self.getNodeSubsets(k)
         if subSets is None:
-            self.mergeEverything()
+            Gcopy = self.deepCopy()
+            phi1 = Gcopy.phi
+            Gcopy.mergeEverything()
+            phi2 = Gcopy.phi
+            if phi2 < phi1:
+                self.mergeEverything()
+                return False
+            else:
+                return True
         else:
             for nodeSet in subSets: # Could also make a method that simply projects the new phi value if [nodes] were to be merged
                 # Gcopy = GRAPH(nodes=self.getOrderedNodeDictionary())
@@ -1498,11 +1511,14 @@ class GRAPH:
                 sequentialGraphsNodes.append(descendantList)
             else:
                 sequentialGraphsNodes.append(currentSet + descendantList)
-
-
         else:
-
-            if currentSet in cutSets:
+            currentSetInCutSets = False
+            for cutSet in cutSets:
+                if len(cutSet) == currentSet:
+                    if sorted(currentSet) == sorted(cutSet):
+                        currentSetInCutSets = True
+                        break
+            if currentSetInCutSets:
                 sequentialGraphsNodes.append(currentSet)
                 firstSetAdded = True
             else:
@@ -1510,10 +1526,10 @@ class GRAPH:
                 firstSetAdded = False
             while nextCutSet or descendantList:
                 if nextCutSet:
-
                     middle = self.getNodesBetweenCutSets(currentSet, nextCutSet)
                     if not firstSetAdded:
                         middle = firstSet + middle
+                        firstSetAdded = True
                     if middle:
                         sequentialGraphsNodes.append(middle)
                     sequentialGraphsNodes.append(nextCutSet)
@@ -1556,6 +1572,19 @@ class GRAPH:
         for node in self.nodes.values():
             node.reduce()
             
+    def equal_ignore_order(self, a, b):
+        """ Use only when elements are neither hashable nor sortable! """
+        if len(a) != len(b):
+            return False
+        
+        unmatched = list(b)
+        for element in a:
+            try:
+                unmatched.remove(element)
+            except ValueError:
+                return False
+        return not unmatched
+            
     @property
     def cardinality(self):
         """
@@ -1589,9 +1618,9 @@ class GRAPH:
         Returns the joined regexes of each individual subNode, 
         based on parallel or sequential relationship.
         """
-        if hasattr(self, 'parallelGraphs') and self.parallelGraphs is not None:
+        if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
             toReturn = "(" + "|".join([g.outRegexRecursive for g in self.parallelGraphs]) + ")"
-        elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs is not None:
+        elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs:
             toReturn = "".join([g.outRegexRecursive for g in self.sequentialGraphs])
         else:
             k = list(self.nodes.keys())[0]

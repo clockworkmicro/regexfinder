@@ -67,9 +67,10 @@ class NodeTest(unittest.TestCase):
         n2 = NODE('a')
         self.assertEqual(n2.getQuantifier, None)
         n3 = NODE('ab')
-        self.assertEqual(n3.getQuantifier, False)
         n4 = NODE('\d{3}(ab)')
-        self.assertEqual(n4.getQuantifier, False)
+        with self.assertRaises(Exception):
+            n3.getQuantifier
+            n4.getQuantifier
 
     def testMergeQuantifier(self):
         n1 = NODE('a{4}')
@@ -280,7 +281,7 @@ class GraphTest(unittest.TestCase):
         self.assertListEqual(regexVals, ['b', 'c', 'd', 'e'], "The next cut set corresponds to f|g")
 
     def testGetNodeDescendantsList(self):
-        g1 = GRAPH(regex='a(bc|de')
+        g1 = GRAPH(regex='a(bc|de)')
         g1.simplify()
         firstCutSet = [key for key, node in g1.nodes.items() if node.regex == 'a']
         descendants = g1.getNodeDescendantsList(firstCutSet)
@@ -541,7 +542,9 @@ class GraphTest(unittest.TestCase):
             if G.nodes[key].regex == '[a-m]{2}' or G.nodes[key].regex == '[n-z]{2}':
                 nodeIds1.append(key)
         G.mergeRelatedNodes(nodeIds1, 'sequential')
-        self.assertEqual("\d{2}([A-Z]{4}|[a-z]{4})\d", G.outRegex)
+        
+        # Since this is parallel it will pass and fail randomly, depending on what is chosen
+        self.assertEqual("\d{2}([A-Z]{4}|[a-z]{4})\d", G.outRegex)               
 
         nodeIds2 = []
         for key in G.nodes:
@@ -664,7 +667,7 @@ class GraphTest(unittest.TestCase):
         # G.createVisual()
 
         G.mergeNodeIds([n1.id_, n2.id_, n3.id_, n4.id_, n5.id_, n6.id_, n7.id_, n8.id_])
-        self.assertEqual("[1-8a-h]{3}", G.outRegex)
+        self.assertEqual("[1-8a-h]{4,6}", G.outRegex)
 
         n1 = NODE('[a1]')
         n2 = NODE('[b2]')
@@ -691,7 +694,7 @@ class GraphTest(unittest.TestCase):
         G.simplify()
 
         G.mergeNodes([n1, n2, n3, n4, n5, n6, n7, n8])
-        self.assertEqual("[1-8a-h]{3}", G.outRegex)
+        self.assertEqual("[1-8a-h]{4,6}", G.outRegex)
 
 
 
@@ -806,6 +809,7 @@ class GraphTest(unittest.TestCase):
             NODE(vector=[0], quantifier='-2,3')
             NODE(vector=[0], quantifier='2,-3')
             NODE(vector=[0], quantifier='-2,-3')
+            NODE(vector=[0], quantifier='3,2')
             NODE(vector=[0], quantifier=',')
             NODE(vector=[0], quantifier='a,4')
             NODE(vector=[0], quantifier='4,a')
