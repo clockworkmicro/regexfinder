@@ -908,8 +908,6 @@ class GRAPH:
         Creates and displays a PDF file of the structure of the graph, regardless of simplification
         level.
         """
-        # self.partition()
-        # self.reduce()
 
         dot = Digraph()
         # dot.node('',shape='point')
@@ -1023,6 +1021,20 @@ class GRAPH:
                 # Test if tuple is necesarry
                 sharedDescendantSets.add(tuple(set([x for y in matches for x in y])))
         return sharedDescendantSets
+    
+    def areNodesConnected(self, nodeList:list):
+        for node in nodeList:
+            loopBreak = False
+            for currNode in nodeList:
+                if currNode is node:
+                    continue
+                if (self.getEdge(node, currNode) or self.getEdge(currNode, node)):
+                    loopBreak = True
+                    break
+            if not loopBreak:
+                return False
+        return True
+                
 
     def isMergeNodesValid(self, nodeList):
         """
@@ -1097,8 +1109,6 @@ class GRAPH:
         if not (intersectTABD or intersectTDBA):
             return True
         else:
-            # areNodesInNodeList1 = any([node in intersectTABD for node in nodeList])
-            # areNodesInNodeList2 = any([node in intersectTDBA for node in nodeList])
             for node in intersectTABD:
                 try:
                     nodeList.remove(node)
@@ -1114,11 +1124,6 @@ class GRAPH:
                     return False
 
             return True
-            # if not (areNodesInNodeList1 or areNodesInNodeList2):
-            #     return False
-            # else:
-            #     return True
-            # return False
 
     def createMergedNodes(self, nodeList, nodeRelationship):
         """
@@ -1236,37 +1241,14 @@ class GRAPH:
             else:
                 self.parallelPartition()
 
-            # self.simplify()
-            self.partition()  # doesn't work when
+            self.partition()
         else:
             raise Exception("The mergedNode is not a node, check merging")
-
-    # CREATESUBGRAPH
-
-    # def createSubGraph(self, nodeList):
-    #     """
-    #     Returns a GRAPH object with nodes and edges made up of all node IDs given.
-    #     """
-    #     necessaryEdges = []
-
-    #     for edge in self.edges:
-    #         if edge.parent in nodeList and edge.child in nodeList:
-    #             necessaryEdges.append(edge)
-
-    #     nodeDict = dict([(n, self.nodes[n]) for n in nodeList])
-
-    #     nodeListGraph = GRAPH(nodes=nodeDict, edges=necessaryEdges)
-
-    #     return nodeListGraph
 
     def createSubGraphNodes(self, nodeList):
         """
         Returns a GRAPH object with nodes and edges made up of all NODE objects given.
         """
-
-        # for edge in self.edges:
-        #     if (any(edge.parent in n.id_ for n in nodeList)) and (any(edge.parent in n.id_ for n in nodeList)):
-        #         necessaryEdges.append(edge)
 
         necessaryEdges = [edge for edge in self.edges if
                           (self.nodes[edge.parent] in nodeList and self.nodes[edge.child] in nodeList)]
@@ -1284,7 +1266,6 @@ class GRAPH:
         """
         self.simplify()
         self.parallelPartition()
-        # self.partition()
         changedNodes = []
         nodeList = []
         if self.parallelGraphs:
@@ -1308,7 +1289,6 @@ class GRAPH:
         else:
             mergeType = "sequential"
             self.sequentialPartition()
-            # self.sequentialPartition()
             graphWasChanged = False
             for x in self.sequentialGraphs:
                 if len(x.nodes) != 1:
@@ -1378,7 +1358,6 @@ class GRAPH:
         Returns a GRAPH object with nodes and edges made up of all node IDs given.
         """
         subNodes = {}
-        # subEdges = []
 
         for node in nodeList:
             subNodes[node] = self.nodes[node]
@@ -1387,88 +1366,14 @@ class GRAPH:
         subG = GRAPH(nodes=subNodes, edges=subEdges, alpha=self.alpha)
         return subG
 
-    def getNodeObjectsOrdered(self):
-        """Returns a list of nodes objects in a general order in
-        which they apprear on a graph
-
-        Returns:
-            list: Node objects from the outer graph
-        """
-        nodes:list[NODE] = []
-        self.simplify()
-
-        if len(self.nodes) == 1:
-            n = NODE
-            for value in self.nodes.values():
-                n = value
-            nodes.append(n)
-            return nodes
-
-        else:
-            if self.parallelGraphs:  # is not none
-                [nodes.extend(g.getNodeObjectsOrdered()) for g in self.parallelGraphs]
-            else:
-                [nodes.extend(g.getNodeObjectsOrdered()) for g in self.sequentialGraphs]
-
-        return nodes
-
-    def getNodeIdsOrdered(self):
-        """Returns a list of nodes objects in a general order in
-        which they apprear on a graph
-
-        Returns:
-            list: Node objects from the outer graph
-        """
-        nodes = []
-        self.simplify()
-
-        if len(self.nodes) == 1:
-            n = NODE
-            for value in self.nodes:
-                n = value
-            nodes.append(n)
-            return nodes
-
-        else:
-            if self.parallelGraphs:  # is not none
-                [nodes.extend(g.getNodeIdsOrdered()) for g in self.parallelGraphs]
-            else:
-                [nodes.extend(g.getNodeIdsOrdered()) for g in self.sequentialGraphs]
-
-        return nodes
-
-    def getOrderedNodeDictionary(self):
-        toReturn = {}
-        ids = self.getNodeIdsOrdered()
-        nodes = self.getNodeObjectsOrdered()
-        for i in range(len(ids)):
-            toReturn[ids[i]] = nodes[i]
-
-        return toReturn
-
-    def getNodeSubsets(self, k):
-
-        if len(self.nodes) <= k:
-            return None
-
-        nodeList = self.getNodeObjectsOrdered()
-        subSets = []
-
-        for i in range(len(nodeList) - k + 1):
-            potentialSubSet = []
-            for j in range(k):
-                potentialSubSet.append(nodeList[i + j].id_)
-            if (self.isMergeNodesValid(potentialSubSet)):
-                subSets.append(potentialSubSet)
-
-        return subSets
-
-    def phiReduction(self, k):  # This will merge every set that lowers phi; but another method could
-        # merge, then make the new graph from that new node and try again
+    def phiReduction(self, k): 
         if len(self.nodes.keys()) == 1:
             return True
 
         subSets = self.getNodeIdSequences(k)
+                
+        subSets = [list(subSet) for subSet in subSets if self.areNodesConnected(list(subSet))]
+        subSets = [list(subSet) for subSet in subSets if self.isMergeNodesValid(list(subSet))]
         
         if subSets is None:
             Gcopy = self.deepCopy()
@@ -1495,71 +1400,9 @@ class GRAPH:
         hasBeenUpdated = False
         while not hasBeenUpdated:
             hasBeenUpdated = self.phiReduction(k)
-
-    def getNodeSequences(self, sequenceLength):
-        sequences = []
-        if self.topLevelOrExists:
-            #             do stuff
-            return 99999
-        else:
-            for node in self.getNodeObjectsOrdered():
-                currList = self.getNodeSequenceRecursive(sequenceLength, node)
-                for sequenceList in currList:
-                    sequences.append(sequenceList)
-                siblingsList=self.getSiblings(node.id_)   
-                if len(siblingsList) == sequenceLength:
-                    toAppend = [self.nodes[n] for n in siblingsList]
-                    sequences.append(toAppend)
-                elif len(siblingsList) > sequenceLength:
-                    toAppend = [self.nodes[n] for n in siblingsList]
-                    for x in range(len(siblingsList)-sequenceLength):
-                        sequences.append(toAppend[x:x+sequenceLength])
-        return sequences
     
     def getNodeIdSequences(self, sequenceLength):
-        sequences = []
-        if self.topLevelOrExists:
-            #             do stuff
-            return 99999
-        else:
-            for node in self.getNodeObjectsOrdered():
-                currList = self.getNodeSequenceRecursive(sequenceLength, node)
-                for sequenceList in currList:
-                    toAppend = [n.id_ for n in sequenceList]
-                    sequences.append(toAppend)
-                siblingsList=self.getSiblings(node.id_)   
-                if len(siblingsList) == sequenceLength:
-                    sequences.append(siblingsList)
-                elif len(siblingsList) > sequenceLength:
-                    for x in range(len(siblingsList)-sequenceLength):
-                        sequences.append(siblingsList[x:x+sequenceLength])
-        return sequences
-
-    def getNodeSequenceRecursive(self, sequenceLength:int, currNode:NODE, depth=None, sequenceList=None,
-                                 currSequenceList=None):
-        if currSequenceList is None:
-            currSequenceList:list[NODE] = []
-        if sequenceList is None:
-            sequenceList:list[list[NODE]] = []
-        if depth is None:
-            depth = 1
-
-        
-        if len(currSequenceList) == sequenceLength-1:
-            temp = list(currSequenceList)
-            temp.append(currNode)
-            sequenceList.append(temp)
-            return
-
-        currSequenceList.append(currNode)
-        
-        # while loop that keeps going down 1 child and recursing
-        for node in self.getChildren(currSequenceList[len(currSequenceList)-1].id_):
-            self.getNodeSequenceRecursive(sequenceLength, self.nodes[node], depth=depth+1, sequenceList=sequenceList,
-                                                currSequenceList=currSequenceList)
-        currSequenceList.pop(-1) # comment out and compare results
-            
-        return sequenceList
+        return list(combinations(self.nodes.keys(), sequenceLength))
 
     def partition(self):
         """
@@ -1603,7 +1446,6 @@ class GRAPH:
                         currentSetInCutSets = True
                         break
             if currentSetInCutSets:
-                # if sorted(currentSet) == sorted(cutSets):
                 sequentialGraphsNodes.append(currentSet)
                 firstSetAdded = True
             else:
@@ -1656,19 +1498,6 @@ class GRAPH:
     def reduce(self):
         for node in self.nodes.values():
             node.reduce()
-
-    def equal_ignore_order(self, a, b):
-        """ Use only when elements are neither hashable nor sortable! """
-        if len(a) != len(b):
-            return False
-
-        unmatched = list(b)
-        for element in a:
-            try:
-                unmatched.remove(element)
-            except ValueError:
-                return False
-        return not unmatched
 
     @property
     def cardinality(self):
