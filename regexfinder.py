@@ -1,4 +1,5 @@
 import copy
+from math import inf
 import numpy as np
 import pandas as pd
 from graphviz import Digraph
@@ -10,7 +11,7 @@ from utils import *
 
 
 class NODE:
-    def __init__(self, regex=None, vector=None, replaced=False, alpha=1, quantifier=None):
+    def __init__(self, regex:str=None, vector=None, replaced=False, alpha=1, quantifier=None):
         """
         Node creation is defined firstly by a regex. If a regex is provided with a vector and/or quantifier,
         the latter two will be ignored and the node will be created from the given regex. If a regex
@@ -22,17 +23,17 @@ class NODE:
             raise Exception('Either regex or vector required.')
 
         self.alpha = alpha
-        self.regex = regex
-        self.vector = vector
-        self.id_ = next(strCounter)
-        self.reduced = False
+        self.regex:str = regex
+        self.vector:VECTOR = vector
+        self.id_:str = next(strCounter)
+        self.reduced:bool = False
         self.replaced = replaced
 
         if self.regex is None:
             # if merging nodes this will make the characters go in alphabetical order
-            self.regex = self.vector.regex
+            self.regex:str = self.vector.regex
             if quantifier is not None:
-                regexUpdates = setClassQuantList(self.regex, quantifier)
+                regexUpdates:list[str] = setClassQuantList(self.regex, quantifier)
                 self.classQuantList = regexUpdates[0]
                 self.regex = regexUpdates[1]
             else:
@@ -88,7 +89,7 @@ class NODE:
         else:
             raise Exception("Node is not simple")
 
-    def mergeQuantifiers(self, nodeList):
+    def mergeQuantifiers(self, nodeList:list):
         """
         Returns the new lower and upper bounds following the merging of the nodes' quantifier.
         """
@@ -297,14 +298,14 @@ class NODE:
 
 
 class EDGE:
-    def __init__(self, parent, child, words=None):
+    def __init__(self, parent:str, child:str, words=None):
         """
         CHECK WORDS
         An edge is what connects 2 nodes, and exactly two nodes.
         Its parent and child must not be the same.
         """
         if words is None:
-            words = []
+            words:list = []
         if parent != child:
             self.parent = parent
             self.child = child
@@ -314,7 +315,7 @@ class EDGE:
 
 
 class VECTOR:
-    def __init__(self, vector, alpha=None):
+    def __init__(self, vector:np.ndarray, alpha=None):
         """
         CHECK ALPHA
         A vector is a matrix of 1's and 0's 128 big, each place
@@ -352,6 +353,10 @@ class VECTOR:
         if toReturn == '[\\dA-Z_a-z]':
             toReturn = '[\\w]'
         return toReturn
+    
+    @property
+    def getndArray(self):
+        return self.v
 
     def reduce(self):
         """
@@ -453,7 +458,7 @@ class ALPHABET:
 
 
 class WORDCOLLECTION:
-    def __init__(self, words):
+    def __init__(self, words:list):
         """
         CHECK
         """
@@ -534,7 +539,7 @@ class WORDCOLLECTION:
 
 
 class GRAPH:
-    def __init__(self, regex=None, wordList=None, nodes=None, edges=None, alpha=1):
+    def __init__(self, regex:str=None, wordList=None, nodes:dict[str, NODE]=None, edges:list[EDGE]=None, alpha=1):
         """
         CHECK
         A Graph is a structure made of nodes and edges. Graphs are built by priority from regex,
@@ -546,8 +551,8 @@ class GRAPH:
         self.wordList = wordList
         self.alpha = alpha
 
-        self.nodes = {}
-        self.edges = []
+        self.nodes:dict[str, NODE] = {}
+        self.edges:list[EDGE] = []
         # self.sequentialGraphs = []
         # self.parallelGraphs = []
 
@@ -574,12 +579,12 @@ class GRAPH:
         else:
             pass
 
-        test = self.deepCopy()
-        test.parallelPartition()
-        if test.parallelGraphs:
-            self.topLevelOrExists = True
-        else:
-            self.topLevelOrExists = False
+        # test = self.deepCopy()
+        # test.parallelPartition()
+        # if test.parallelGraphs:
+        #     self.topLevelOrExists = True
+        # else:
+        #     self.topLevelOrExists = False
 
     def deepCopy(self):
         """
@@ -588,7 +593,7 @@ class GRAPH:
         """
         return copy.deepcopy(self)
 
-    def addNode(self, node, edges=None):
+    def addNode(self, node:NODE, edges=None):
         """
         Adds a node into the given graph. Edges not required.
         """
@@ -605,7 +610,7 @@ class GRAPH:
         else:
             pass
 
-    def removeNodeAndEdges(self, nodeList):
+    def removeNodeAndEdges(self, nodeList:list[str]):
         """
         Removes the given nodes, and its edges, from the given graph.
         Returns the affected nodes and edges adjecent to the group of nodes removed.
@@ -629,11 +634,14 @@ class GRAPH:
         [self.edges.remove(x) for x in edgesToRemove]
 
         for node in nodeList:
-            del self.nodes[node]
+            try:
+                del self.nodes[node]
+            except KeyError:
+                continue
 
         return [upperAffectedNodes, lowerAffectedNodes]
 
-    def addEdge(self, edge):
+    def addEdge(self, edge:EDGE):
         """
         Adds the given edge to the graph ONLY if the parent and child nodes do not already
         exist and if an edge for said parent and child nodes does not already exist.
@@ -645,7 +653,7 @@ class GRAPH:
             raise Exception("Parent or Child node does not exist")
         self.edges.append(edge)
 
-    def getEdge(self, parent, child):
+    def getEdge(self, parent:str, child:str):
         """
         Returns EDGE object for a given parent and child node, if it exists. Returns
         false otherwise.
@@ -658,7 +666,7 @@ class GRAPH:
         else:
             return False
 
-    def removeEdge(self, parent, child):
+    def removeEdge(self, parent:str, child:str):
         """
         Removes edge binding two nodes (parent and child) IF they exist in the given graph.
         """
@@ -669,25 +677,25 @@ class GRAPH:
         if toRemove:
             [self.edges.remove(edge) for edge in toRemove]
 
-    def removeEdgesList(self, edgeList):
+    def removeEdgesList(self, edgeList:list[EDGE]):
         """
         Removes all edges in the given graph.
         """
         [self.edges.remove(edge) for edge in edgeList]
 
-    def getParents(self, id_):
+    def getParents(self, id_:str):
         """
         Returns node ID(s) of the parent(s) of a given node via ID. Returns false if nonexistent.
         """
         return [x.parent for x in self.edges if x.child == id_]
 
-    def getChildren(self, id_):
+    def getChildren(self, id_:str):
         """
         Returns node ID(s) of the child(ren) of a given node via ID. Returns false if nonexistent.
         """
         return [x.child for x in self.edges if x.parent == id_]
 
-    def getSiblings(self, id_):
+    def getSiblings(self, id_:str):
         """
         CHECK
         Returns neighboring nodes, siblings of a given node via ID.
@@ -750,7 +758,7 @@ class GRAPH:
                 tempDict[(parents, children)] = [id_]
         return list(tempDict.values())
 
-    def getNodeAncestorsList(self, inList):
+    def getNodeAncestorsList(self, inList:list[str]):
         """
         Returns a list of node IDs of ancestors, the parents of all of each node's parents
         """
@@ -759,7 +767,7 @@ class GRAPH:
             toReturn += self.getNodeAncestors(id_)
         return toReturn
 
-    def getNodeDescendantsList(self, inList):
+    def getNodeDescendantsList(self, inList:list[str]):
         """
         Returns a list of node IDs of descendants, the children of all of each node's children
         """
@@ -771,7 +779,7 @@ class GRAPH:
         toReturn = list(set(toReturn))
         return toReturn
 
-    def getNodeAncestors(self, id_):
+    def getNodeAncestors(self, id_:str):
         """
         Returns a list of node IDs of ancestors, the parents of a given node's parents
         """
@@ -783,7 +791,7 @@ class GRAPH:
             ancestors.append(parent)
         return sorted(list(set(ancestors)))
 
-    def getNodeDescendants(self, id_):
+    def getNodeDescendants(self, id_:str):
         """
         Returns a list of node IDs of descendants, the children of a given node's children
         """
@@ -800,7 +808,7 @@ class GRAPH:
 
     # A set of nodes is a CutSet if the set of nodes union with all its ancestors
     # and al of its descendants yields the entire graph
-    def testCutSet(self, inList):
+    def testCutSet(self, inList:str):
         """
         CHECK
         """
@@ -823,7 +831,7 @@ class GRAPH:
         eqClasses = self.getNodeEqClasses()
         return [sorted(eqClass) for eqClass in eqClasses if self.testCutSet(eqClass)]
 
-    def getNextCutSet(self, id_):
+    def getNextCutSet(self, id_:str):
         """
         CHECK
         """
@@ -835,7 +843,7 @@ class GRAPH:
             children = newchildren
         return children
 
-    def getNodesBetweenCutSets(self, cutSetUpper, cutSetLower):
+    def getNodesBetweenCutSets(self, cutSetUpper:list, cutSetLower:list):
         """
         CHECK
         """
@@ -926,7 +934,7 @@ class GRAPH:
 
         dot.render(view=True)
 
-    def process(self, id_):
+    def process(self, id_:str):
         """
         CHECK
         """
@@ -1000,29 +1008,29 @@ class GRAPH:
         """
         noParents = self.getNodesNoParents()
 
-        combs = list(combinations(noParents, 2))
-        d = {}
+        combs = list(combinations(noParents, 2)) # every possible pair made of every node with no parent
+        d = {} # dictionary of every noParent node's descendants
 
         for id_ in noParents:
             d[id_] = self.getNodeDescendants(id_)
 
         pairs = []
         for first, second in combs:
-            disjoint = set(d[first]).isdisjoint(d[second])
-            if not disjoint:
+            disjoint = set(d[first]).isdisjoint(set(d[second]))
+            if not disjoint: # do the pair share any descendants
                 pairs.append([first, second])
 
-        sharedDescendantSets = set([])
+        sharedDescendantSets = set()
         for id_ in noParents:
-            matches = [pair for pair in pairs if id_ in pair]
-            if not matches:
-                sharedDescendantSets.add(tuple([id_]))
+            matches = [pair for pair in pairs if id_ in pair] # for this id_, find every pair it's in
+            if not matches: # if matches is empty
+                sharedDescendantSets.add(tuple([id_])) # add this id_
             else:
                 # Test if tuple is necesarry
-                sharedDescendantSets.add(tuple(set([x for y in matches for x in y])))
+                sharedDescendantSets.add(tuple(set([x for y in matches for x in y]))) # otherwise
         return sharedDescendantSets
     
-    def areNodesConnected(self, nodeList:list):
+    def areNodesConnected(self, nodeList:list[str]):
         for node in nodeList:
             loopBreak = False
             for currNode in nodeList:
@@ -1035,8 +1043,7 @@ class GRAPH:
                 return False
         return True
                 
-
-    def isMergeNodesValid(self, nodeList):
+    def isMergeNodesValid(self, nodeList:list[str]):
         """
         Returns boolean if a given list of node IDs is able to be merged
         i.e. a->b->c->d, 'b' and 'd' cannot be merged but 'b' 'c' d' can.
@@ -1125,7 +1132,7 @@ class GRAPH:
 
             return True
 
-    def createMergedNodes(self, nodeList, nodeRelationship):
+    def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
         """
         Creates and retuns a NODE object made from a list of node IDs being merged.
         Returns false if the merged node was not able to be made
@@ -1147,7 +1154,7 @@ class GRAPH:
         else:
             return False
 
-    def createMergedParallelNodesQuantifier(self, nodeList):
+    def createMergedParallelNodesQuantifier(self, nodeList:list[str]):
         """
         Returns a new quantifier (string) made from the merging of ALL nodes that are parallel
         to eachother. None is returned if no quantifier ({1}) is found. 
@@ -1166,7 +1173,7 @@ class GRAPH:
         else:
             return None
 
-    def createMergedSequentialNodesQuantifier(self, nodeList):
+    def createMergedSequentialNodesQuantifier(self, nodeList:list[str]):
         """
         Returns a new quantifier (string) made from the merging of ALL nodes that are sequential
         to eachother. If no quantifier is found ({1}), the length of the list of node IDs is returned. 
@@ -1187,7 +1194,7 @@ class GRAPH:
         else:
             return len(nodeList)
 
-    def mergeRelatedNodes(self, nodeList, nodeRelationship):
+    def mergeRelatedNodes(self, nodeList:list[str], nodeRelationship:str):
         """
         Given a list of node IDs and a shared relationship between them (parallel or sequential), a new node is created
         from merging the given nodes as well as placing itself where the group of nodes was before,
@@ -1206,7 +1213,7 @@ class GRAPH:
 
         self.graphStichIn(nodeList, nodeRelationship, mergedNode)
 
-    def graphStichIn(self, nodeList, nodeRelationship, mergedNode):
+    def graphStichIn(self, nodeList:list[str], nodeRelationship:str, mergedNode:NODE):
         """
         Given a list of node IDs and a shared relationship between them (parallel or sequential) and a new node,
         the new node will replace the position of where all the nodes used to occupy. If the mergedNode is not
@@ -1245,7 +1252,7 @@ class GRAPH:
         else:
             raise Exception("The mergedNode is not a node, check merging")
 
-    def createSubGraphNodes(self, nodeList):
+    def createSubGraphNodes(self, nodeList:list[NODE]):
         """
         Returns a GRAPH object with nodes and edges made up of all NODE objects given.
         """
@@ -1276,7 +1283,10 @@ class GRAPH:
                     graphWasChanged = True
                     nodeInfoList = x.mergeToNodeRecursive()
                     for infoList in nodeInfoList:
-                        changedNodes.append(infoList)
+                        if infoList in changedNodes:
+                            continue
+                        else:
+                            changedNodes.append(infoList)
 
             if graphWasChanged:
                 for nodeTuple in changedNodes:
@@ -1310,7 +1320,7 @@ class GRAPH:
             changedNodes.append((self.nodes[x], nodeList, mergeType))
             return changedNodes
 
-    def mergeNodeIds(self, nodeList):
+    def mergeNodeIds(self, nodeList:list[str]):
         """
         Given a list of node IDs, Creates a new node merged from each node, and is
         'stiched' into the graph to preserve continuity. NodeList should contain node IDs
@@ -1321,7 +1331,7 @@ class GRAPH:
                 # A graph made up of only the nodes
                 # nodes = [self.nodes[n] for n in nodeList]
                 nodeIdGraph = self.createSubGraph(nodeList)
-                nodeIdGraph.partition()
+                # nodeIdGraph.partition()
 
                 # Makes a one node graph of those nodes
                 fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
@@ -1329,7 +1339,7 @@ class GRAPH:
                 for nodeTuple in fullyMergedNodeInstructions:
                     self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
 
-    def mergeNodes(self, nodeList):
+    def mergeNodes(self, nodeList:list[NODE]):
         """
         Given a list of nodes , Creates a new node merged from each node, and is
         'stiched' into the graph to preserve continuity. NodeList should contain nodes
@@ -1353,7 +1363,7 @@ class GRAPH:
         """
         self.mergeNodeIds(list(self.nodes.keys()))
 
-    def createSubGraph(self, nodeList):
+    def createSubGraph(self, nodeList:list[str]):
         """
         Returns a GRAPH object with nodes and edges made up of all node IDs given.
         """
@@ -1366,8 +1376,8 @@ class GRAPH:
         subG = GRAPH(nodes=subNodes, edges=subEdges, alpha=self.alpha)
         return subG
 
-    def phiReduction(self, k): 
-        if len(self.nodes.keys()) == 1:
+    def phiReduction(self, k:int): 
+        if len(self.nodes) == 1:
             return True
 
         subSets = self.getNodeIdSequences(k)
@@ -1396,10 +1406,56 @@ class GRAPH:
                     return False
             return True
 
-    def reducePhi(self, k):
+    def reducePhi(self, k:int):
         hasBeenUpdated = False
         while not hasBeenUpdated:
             hasBeenUpdated = self.phiReduction(k)
+        return self.phi
+        
+    def testReducePhi(self, k:int):
+        topCopy = self.deepCopy()
+        hasBeenUpdated = False
+        while not hasBeenUpdated:
+            hasBeenUpdated = topCopy.phiReduction(k)
+        return topCopy.phi
+    
+    def optimizeReducePhi(self):
+        lowestPhi = self.phi
+        optimalSequenceLength = 0
+        if (len(self.nodes) > 1):
+            for i in range (2, len(self.nodes)+1):
+                currPhiReduction = self.testReducePhi(i)
+                if currPhiReduction != (-inf) and currPhiReduction < lowestPhi:
+                    lowestPhi = currPhiReduction
+                    optimalSequenceLength = i
+        if optimalSequenceLength != 0:
+            self.reducePhi(optimalSequenceLength)
+            return self.phi, optimalSequenceLength
+        else:
+            return None
+    
+    def flattenViaRegex(self):
+        unifiedVector = list(np.zeros(128, dtype=int))
+        for node in self.nodes.values():
+            node.createVector()
+            currV = list(node.vector.getndArray)
+            for bit in range(len(currV)):
+                if currV[bit] == 1:
+                    if unifiedVector[bit] != 1:
+                        unifiedVector[bit] = 1
+        newV = VECTOR(unifiedVector)
+        
+        self.mergeEverything()
+        for node in self.nodes.values():
+            quantifier = node.getQuantifier
+            quantifier = quantifier[1:-1]
+                
+        newNode = NODE(vector=newV, quantifier=quantifier)
+        
+        self.nodes = self.edges = self.sequentialGraphs = self.parallelGraphs = None
+        nodes = {newNode.id_: newNode}
+        self.__init__(nodes=nodes)
+        self.partition()
     
     def getNodeIdSequences(self, sequenceLength):
         return list(combinations(self.nodes.keys(), sequenceLength))
@@ -1418,7 +1474,28 @@ class GRAPH:
         else:
             self.parallelPartition()
             if self.parallelGraphs:  # is not none
-                [g.partition() for g in self.parallelGraphs]
+                graphsToCheck = []
+                for graph in self.parallelGraphs:
+                    graphsToCheck.append(sorted(list(graph.nodes.keys())))
+                startPop = graphsToCheck.pop(0)
+                currGraph = startPop
+                redundantParGraphs = False
+                if graphsToCheck[0] == startPop:
+                    redundantParGraphs = True
+                else:
+                    while graphsToCheck[0] != startPop:
+                        if currGraph in graphsToCheck:
+                            redundantParGraphs = True
+                            break
+                        graphsToCheck.append(currGraph)
+                        currGraph = graphsToCheck.pop(0)
+                    
+                if not redundantParGraphs:
+                    [g.partition() for g in self.parallelGraphs]
+                else:
+                    self.parallelGraphs = None
+                    self.sequentialPartition()
+                    [g.partition() for g in self.sequentialGraphs]
             else:
                 self.sequentialPartition()
                 [g.partition() for g in self.sequentialGraphs]
@@ -1467,7 +1544,7 @@ class GRAPH:
                     if descendantList:
                         sequentialGraphsNodes.append(descendantList)
                     break
-        self.sequentialGraphs = []
+        self.sequentialGraphs:list[GRAPH] = []
         for nodeSet in sequentialGraphsNodes:
             self.sequentialGraphs.append(self.createSubGraph(nodeSet))
         if len(self.sequentialGraphs) == 1:
@@ -1475,27 +1552,48 @@ class GRAPH:
         else:
             pass
         return
-
+    
+    def isParallelGraphsPossible(self):
+        topNodes = self.getNodesNoParents()
+        if len(topNodes) == 1:
+            return False
+        elif self.getLonelyNodes():
+            return True
+        else:
+            sharedDescendants = set(self.getNodeDescendants(topNodes[0]))
+            for x in range (1, len(topNodes)):
+                sharedDescendants = sharedDescendants.intersection(set(self.getNodeDescendants(topNodes[x])))
+            if sharedDescendants:
+                return False
+            else:
+                return True
     def parallelPartition(self):
         """
         CHECK
         """
-        sharedDescendantSets = self.getSharedDecendantSets()
-
-        parallel = []
-        for s in sharedDescendantSets:
-
-            nodes = set(s)
-            for node in s:
-                for descendant in self.getNodeDescendants(node):
-                    nodes.add(descendant)
-            parallel.append(nodes)
-        if len(parallel) == 1:
+        if not self.isParallelGraphsPossible():
             self.parallelGraphs = None
         else:
-            self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
+            sharedDescendantSets = self.getSharedDecendantSets()
+
+            parallel = []
+            for s in sharedDescendantSets:
+
+                nodes = set(s)
+                for node in s:
+                    for descendant in self.getNodeDescendants(node):
+                        nodes.add(descendant)
+                parallel.append(nodes)
+            if len(parallel) == 1:
+                self.parallelGraphs:list[GRAPH] = None
+            elif sorted(parallel) == sorted(list(self.nodes.keys())):
+                self.parallelGraphs:list[GRAPH] = None
+            else:
+                self.parallelGraphs:list[GRAPH] = [self.createSubGraph(nodeSet) for nodeSet in parallel]
 
     def reduce(self):
+        """Reduces each node in the graph, i.e. abc -> a-c
+        """
         for node in self.nodes.values():
             node.reduce()
 
@@ -1504,13 +1602,13 @@ class GRAPH:
         """
         Returns the cardinality, how many strings are able to satisfy the regex of the graph.
         """
-        if hasattr(self, 'parallelGraphs') and self.parallelGraphs is not None:
+        if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
             return sum([g.cardinality for g in self.parallelGraphs])
-        elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs is not None:
+        elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs:
             return np.prod([g.cardinality for g in self.sequentialGraphs])
         else:
             k = list(self.nodes.keys())[0]
-            return self.nodes[k].cardinality
+            return np.longlong(self.nodes[k].cardinality)
 
     @property
     def entropy(self):

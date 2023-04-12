@@ -123,7 +123,7 @@ def getClassQuantList(inString):
     return toReturn
 
 
-def setClassQuantList(inString, quantifier):
+def setClassQuantList(inString:str, quantifier):
     '''
     Returns a list of quantifier data, being 'class', 'quantifier', 'min' and 'max', built from a given quantifier,
     as well as an updated inString to couple with the new quantifier.
@@ -208,7 +208,7 @@ def setClassQuantList(inString, quantifier):
                 max = int(max)
                 entry['max'] = max
                 
-        if entry['quantifier'] != 1:
+        if entry['quantifier'] != None:
             updatedInString = inString + entry['quantifier']
         else:
             updatedInString = inString
