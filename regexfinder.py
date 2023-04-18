@@ -1376,7 +1376,7 @@ class GRAPH:
         subG = GRAPH(nodes=subNodes, edges=subEdges, alpha=self.alpha)
         return subG
 
-    def phiReduction(self, k:int): 
+    def mergeFirstValidSubgraph(self, k:int): 
         if len(self.nodes) == 1:
             return True
 
@@ -1409,14 +1409,14 @@ class GRAPH:
     def reducePhi(self, k:int):
         hasBeenUpdated = False
         while not hasBeenUpdated:
-            hasBeenUpdated = self.phiReduction(k)
+            hasBeenUpdated = self.mergeFirstValidSubgraph(k)
         return self.phi
         
     def testReducePhi(self, k:int):
         topCopy = self.deepCopy()
         hasBeenUpdated = False
         while not hasBeenUpdated:
-            hasBeenUpdated = topCopy.phiReduction(k)
+            hasBeenUpdated = topCopy.mergeFirstValidSubgraph(k)
         return topCopy.phi
     
     def optimizeReducePhi(self):
@@ -1433,29 +1433,6 @@ class GRAPH:
             return self.phi, optimalSequenceLength
         else:
             return None
-    
-    def flattenViaRegex(self):
-        unifiedVector = list(np.zeros(128, dtype=int))
-        for node in self.nodes.values():
-            node.createVector()
-            currV = list(node.vector.getndArray)
-            for bit in range(len(currV)):
-                if currV[bit] == 1:
-                    if unifiedVector[bit] != 1:
-                        unifiedVector[bit] = 1
-        newV = VECTOR(unifiedVector)
-        
-        self.mergeEverything()
-        for node in self.nodes.values():
-            quantifier = node.getQuantifier
-            quantifier = quantifier[1:-1]
-                
-        newNode = NODE(vector=newV, quantifier=quantifier)
-        
-        self.nodes = self.edges = self.sequentialGraphs = self.parallelGraphs = None
-        nodes = {newNode.id_: newNode}
-        self.__init__(nodes=nodes)
-        self.partition()
     
     def getNodeIdSequences(self, sequenceLength):
         return list(combinations(self.nodes.keys(), sequenceLength))
