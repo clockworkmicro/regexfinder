@@ -66,6 +66,14 @@ def outerParentheses(inString):
     complements = [c for c in complements if c[0]<c[1]]
     return parentheses,complements
 
+def hasOuterParentheses(inString):
+    if inString[0] == '(':
+        for s in range(len(inString)-1):
+            if inString[s] == ')' and s == len(inString)-1:
+                return True
+    return False
+    
+
 def getParenthesesSegments(inString):
     p,c = outerParentheses(inString)
     r = p+c

@@ -115,8 +115,9 @@ class NODE:
         Removes unnecesary outer parenthesis if they exist in a node
         i.e. (a).
         """
-        while self.regex[0] == '(' and self.regex[-1] == ')':
-            self.regex = self.regex[1:-1]
+        if hasOuterParentheses(self.regex):
+            while self.regex[0] == '(' and self.regex[-1] == ')':
+                self.regex = self.regex[1:-1]
 
     def createVector(self):
         """
@@ -764,7 +765,8 @@ class GRAPH:
         """
         toReturn = []
         for id_ in inList:
-            toReturn += self.getNodeAncestors(id_)
+            if self.getNodeAncestors(id_) not in toReturn:
+                toReturn += self.getNodeAncestors(id_)
         return toReturn
 
     def getNodeDescendantsList(self, inList:list[str]):
@@ -775,7 +777,8 @@ class GRAPH:
             raise Exception(('value inList must be a list'))
         toReturn = []
         for id_ in inList:
-            toReturn += self.getNodeDescendants(id_)
+            if self.getNodeDescendants(id_) not in toReturn:
+                toReturn += self.getNodeDescendants(id_)
         toReturn = list(set(toReturn))
         return toReturn
 
@@ -1405,7 +1408,71 @@ class GRAPH:
                     self.mergeNodeIds(nodeSet)
                     return False
             return True
+    
+    def mergeValidParGraphs(self):
+        startNodeIds = [topNode for topNode in self.getNodesNoParents() if topNode not in self.getLonelyNodes()]
+        self.mergeValidParGraphsRecursive(startNodeIds)
 
+    def mergeValidParGraphsRecursive(self, currChildren:list[str]):
+        
+        currNode = currChildren[0]
+        currNodeSiblings = currChildren
+        if currNodeSiblings:
+            if len(currNodeSiblings) == 1:
+                currNodeSiblings.remove(currNode)
+            else:
+                setOfSiblings = set(currNodeSiblings.copy())
+                for sibling in setOfSiblings:
+                    if len(currNodeSiblings) == 1:
+                        break
+                    siblingDescSet = set(self.getNodeDescendants(sibling))
+                    intersect = setOfSiblings.intersection(siblingDescSet)
+                    if intersect:
+                        for node in intersect:
+                            currNodeSiblings.remove(node)
+                            
+        currNodeChildren = self.getChildren(currNode)
+        
+        # no siblings and no children
+        if not currNodeSiblings and not currNodeChildren:
+            return
+        # no siblings, but has children
+        elif not currNodeSiblings and currNodeChildren:
+            # are any chidren descendants of other children; remove them if so
+            # we only want 'immediate' chidren
+            for child in currNodeChildren:
+                childrenSet = set(currNodeChildren)
+                currChildDescSet = set(self.getNodeDescendants(child))
+                intersect = childrenSet.intersection(currChildDescSet)
+                if intersect:
+                    for node in intersect:
+                        currNodeChildren.remove(node)
+            self.mergeValidParGraphsRecursive(currNodeChildren)
+        # this child has siblings, but has no children; not representative of all children
+        else:
+            # the selected node in the siblings has no children,
+            # but we need to check all siblings for children
+            childrenOfAllSiblings:list[str] = []
+            arbitraryChild = None
+            for sibling in currNodeSiblings:
+                if self.getChildren(sibling):
+                    childrenOfAllSiblings.extend(self.getChildren(sibling))
+                    arbitraryChild = self.getChildren(sibling)[0]
+            for sibling in currNodeSiblings:
+                currSiblingChildren = self.getChildren(sibling)
+                if currSiblingChildren:
+                    for child in currSiblingChildren:
+                        fullChildrenSet = set(currSiblingChildren)
+                        currChildDescSet = set(self.getNodeDescendants(child))
+                        intersect = fullChildrenSet.intersection(currChildDescSet)
+                        if intersect:
+                            for node in intersect:
+                                currSiblingChildren.remove(node)
+            self.mergeNodeIds(currNodeSiblings)
+            newParent = self.getParents(arbitraryChild)
+            self.mergeValidParGraphsRecursive(self.getChildren(newParent[0]))
+        # has siblings and chidren
+    
     def reducePhi(self, k:int):
         hasBeenUpdated = False
         while not hasBeenUpdated:
@@ -1573,6 +1640,22 @@ class GRAPH:
         """
         for node in self.nodes.values():
             node.reduce()
+            
+    def getStartNodeId(self):
+        if self.multiGraphsExist:
+            toReturn = []
+            for graph in self.parallelGraphs:
+                toReturn.append(graph.getStartNodeId())
+            return toReturn
+        elif hasattr(self, 'sequentialGraphs'):
+            return list(self.sequentialGraphs[0].nodes.keys())[0]
+        else:
+            return list(self.nodes.keys())[0]
+            
+    @property
+    def multiGraphsExist(self):
+        self.parallelPartition()
+        return self.parallelGraphs != None
 
     @property
     def cardinality(self):
@@ -1601,7 +1684,7 @@ class GRAPH:
         """
         return len(self.outRegex)
 
-    @property
+
     def outRegexRecursive(self):
         """
         Returns the joined regexes of each individual subNode, 
@@ -1609,10 +1692,10 @@ class GRAPH:
         """
         if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
             # if hasattr(self, 'parallelGraphs') and self.parallelGraphs is not None:
-            toReturn = "(" + "|".join([g.outRegexRecursive for g in self.parallelGraphs]) + ")"
+            toReturn = "(" + "|".join([g.outRegexRecursive() for g in self.parallelGraphs]) + ")"
         elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs:
             # elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs is not None:
-            toReturn = "".join([g.outRegexRecursive for g in self.sequentialGraphs])
+            toReturn = "".join([g.outRegexRecursive() for g in self.sequentialGraphs])
         else:
             k = list(self.nodes.keys())[0]
             toReturn = self.nodes[k].regex
@@ -1623,8 +1706,8 @@ class GRAPH:
         """
         Returns the regex of the given graph.
         """
-        toReturn = self.outRegexRecursive
-        if toReturn[0] == '(' and toReturn[-1] == ')':
+        toReturn = self.outRegexRecursive()
+        if hasOuterParentheses(toReturn):
             return toReturn[1:-1]
         else:
             return toReturn
