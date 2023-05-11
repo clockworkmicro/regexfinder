@@ -1127,10 +1127,7 @@ class GRAPH:
                     return False
 
             for node in intersectTDBA:
-                try:
-                    nodeList.remove(node)
-                    nodeList.append(node)
-                except ValueError:
+                if node not in nodeList:
                     return False
 
             return True
@@ -1408,71 +1405,44 @@ class GRAPH:
                     self.mergeNodeIds(nodeSet)
                     return False
             return True
-    
-    def mergeValidParGraphs(self):
-        startNodeIds = [topNode for topNode in self.getNodesNoParents() if topNode not in self.getLonelyNodes()]
-        self.mergeValidParGraphsRecursive(startNodeIds)
 
-    def mergeValidParGraphsRecursive(self, currChildren:list[str]):
-        
-        currNode = currChildren[0]
-        currNodeSiblings = currChildren
-        if currNodeSiblings:
-            if len(currNodeSiblings) == 1:
-                currNodeSiblings.remove(currNode)
-            else:
-                setOfSiblings = set(currNodeSiblings.copy())
-                for sibling in setOfSiblings:
-                    if len(currNodeSiblings) == 1:
-                        break
-                    siblingDescSet = set(self.getNodeDescendants(sibling))
-                    intersect = setOfSiblings.intersection(siblingDescSet)
-                    if intersect:
-                        for node in intersect:
-                            currNodeSiblings.remove(node)
-                            
-        currNodeChildren = self.getChildren(currNode)
-        
-        # no siblings and no children
-        if not currNodeSiblings and not currNodeChildren:
-            return
-        # no siblings, but has children
-        elif not currNodeSiblings and currNodeChildren:
-            # are any chidren descendants of other children; remove them if so
-            # we only want 'immediate' chidren
-            for child in currNodeChildren:
-                childrenSet = set(currNodeChildren)
-                currChildDescSet = set(self.getNodeDescendants(child))
-                intersect = childrenSet.intersection(currChildDescSet)
-                if intersect:
-                    for node in intersect:
-                        currNodeChildren.remove(node)
-            self.mergeValidParGraphsRecursive(currNodeChildren)
-        # this child has siblings, but has no children; not representative of all children
-        else:
-            # the selected node in the siblings has no children,
-            # but we need to check all siblings for children
-            childrenOfAllSiblings:list[str] = []
-            arbitraryChild = None
-            for sibling in currNodeSiblings:
-                if self.getChildren(sibling):
-                    childrenOfAllSiblings.extend(self.getChildren(sibling))
-                    arbitraryChild = self.getChildren(sibling)[0]
-            for sibling in currNodeSiblings:
-                currSiblingChildren = self.getChildren(sibling)
-                if currSiblingChildren:
-                    for child in currSiblingChildren:
-                        fullChildrenSet = set(currSiblingChildren)
-                        currChildDescSet = set(self.getNodeDescendants(child))
-                        intersect = fullChildrenSet.intersection(currChildDescSet)
-                        if intersect:
-                            for node in intersect:
-                                currSiblingChildren.remove(node)
-            self.mergeNodeIds(currNodeSiblings)
-            newParent = self.getParents(arbitraryChild)
-            self.mergeValidParGraphsRecursive(self.getChildren(newParent[0]))
-        # has siblings and chidren
+    def mergeValidParGraphs(self):
+        if self.parallelGraphs:
+            toMerge = []
+            for graph in self.parallelGraphs:
+                toMerge.extend(list(graph.nodes.keys()))
+            self.mergeNodeIds(toMerge)
+        elif self.sequentialGraphs:
+            merges:list[list[str]] = []
+            for graph in self.sequentialGraphs:
+                potentialMerges = graph.mergeValidParGraphsRecursive()
+                if potentialMerges:
+                    # Check recursive code to make sure this is unnecesary 
+                    if isinstance(potentialMerges[0], list):
+                        for nodeSet in potentialMerges:
+                            merges.append(nodeSet)
+                    else:
+                        merges.append(potentialMerges)
+                        
+            for toMerge in merges:
+                self.mergeNodeIds(toMerge)
     
+    def mergeValidParGraphsRecursive(self):
+        if len(self.nodes) == 1:
+            return None
+        elif self.parallelGraphs:
+            toMerge = []
+            for graph in self.parallelGraphs:
+                toMerge.extend(list(graph.nodes.keys()))
+            return toMerge
+        else:
+            fullToReturn = []
+            for graph in self.sequentialGraphs:
+                potentialReturn = graph.mergeValidParGraphsRecursive()
+                if potentialReturn:
+                    fullToReturn.append(potentialReturn)
+            return fullToReturn
+            
     def reducePhi(self, k:int):
         hasBeenUpdated = False
         while not hasBeenUpdated:
@@ -1611,6 +1581,7 @@ class GRAPH:
                 return False
             else:
                 return True
+            
     def parallelPartition(self):
         """
         CHECK
@@ -1665,10 +1636,20 @@ class GRAPH:
         if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
             return sum([g.cardinality for g in self.parallelGraphs])
         elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs:
-            return np.prod([g.cardinality for g in self.sequentialGraphs])
+            return int(np.prod([g.cardinality for g in self.sequentialGraphs]))
         else:
             k = list(self.nodes.keys())[0]
-            return np.longlong(self.nodes[k].cardinality)
+            return self.nodes[k].cardinality
+        
+    @property
+    def log2Cardinality(self):
+        if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
+            return np.log2(sum([g.cardinality for g in self.parallelGraphs]))
+        elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs:
+            return round(sum([np.log2(g.cardinality) for g in self.sequentialGraphs]), 4)
+        else:
+            k = list(self.nodes.keys())[0]
+            return self.nodes[k].cardinality
 
     @property
     def entropy(self):
@@ -1712,13 +1693,34 @@ class GRAPH:
         else:
             return toReturn
 
+
+    '''
+    This phi and the utils methods should be obsolete b/c of the other one
+    '''
     @property
     def phi(self):
         """
         Returns the phi of the graph, being the entropy of the graph added to the product
         of the alpha (weight parameter) and its K value.
         """
-        return round(np.log2(self.cardinality), 4) + self.alpha * self.K
+        if len(str(self.cardinality)) < 16:
+            print(self.cardinality)
+            return round(np.log2(self.cardinality), 4) + self.alpha * self.K
+        else:
+            divisor = randFactors(self.cardinality)
+            card1 = self.cardinality/divisor
+            card2 = divisor
+            print(np.log2(card1)+np.log2(card2))
+            return round(np.log2(card1)+np.log2(card2), 4) + self.alpha * self.K
+        
+    @property
+    def phiCardLog2(self):
+        """
+        Returns the phi of the graph, being the entropy of the graph added to the product
+        of the alpha (weight parameter) and its K value.
+        """
+        print(self.log2Cardinality)
+        return round(self.log2Cardinality, 4) + self.alpha * self.K
 
     @property
     def random(self):
