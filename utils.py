@@ -1,14 +1,4 @@
 import re
-from functools import reduce
-
-
-def randFactors(n):    
-    factorNum = 50
-    while factorNum > 1:
-        if n%factorNum == 0:
-            return factorNum
-        else:
-            factorNum+=1
 
 def strNumberGenerator():
      number = 0

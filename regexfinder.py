@@ -1692,34 +1692,13 @@ class GRAPH:
             return toReturn[1:-1]
         else:
             return toReturn
-
-
-    '''
-    This phi and the utils methods should be obsolete b/c of the other one
-    '''
+            
     @property
     def phi(self):
         """
         Returns the phi of the graph, being the entropy of the graph added to the product
         of the alpha (weight parameter) and its K value.
         """
-        if len(str(self.cardinality)) < 16:
-            print(self.cardinality)
-            return round(np.log2(self.cardinality), 4) + self.alpha * self.K
-        else:
-            divisor = randFactors(self.cardinality)
-            card1 = self.cardinality/divisor
-            card2 = divisor
-            print(np.log2(card1)+np.log2(card2))
-            return round(np.log2(card1)+np.log2(card2), 4) + self.alpha * self.K
-        
-    @property
-    def phiCardLog2(self):
-        """
-        Returns the phi of the graph, being the entropy of the graph added to the product
-        of the alpha (weight parameter) and its K value.
-        """
-        print(self.log2Cardinality)
         return round(self.log2Cardinality, 4) + self.alpha * self.K
 
     @property

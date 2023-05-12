@@ -894,13 +894,11 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(3, g1.log2Cardinality)
         
         self.assertEqual(36.0, g1.phi)
-        self.assertEqual(36.0, g1.phiCardLog2)
 
         self.assertEqual(84889052165142720, g2.cardinality)
         self.assertEqual(56.2364, g2.log2Cardinality)
         
         self.assertEqual(154.2364, g2.phi)
-        self.assertEqual(154.2364, g2.phiCardLog2)
 
 
 
