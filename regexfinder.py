@@ -74,7 +74,11 @@ class NODE:
         if the node is not simple. If the quantifier is {1}, None is returned.
         """
         if self.simple:
-            return self.classQuantList[0]['min']
+            quantifier = self.getQuantifier
+            if quantifier == '?':
+                return 0
+            else:
+                return self.classQuantList[0]['min']
         else:
             raise Exception("Node is not simple")
 
@@ -85,7 +89,11 @@ class NODE:
         if the node is not simple. If the quantifier is {1}, None is returned.
         """
         if self.simple:
-            return self.classQuantList[0]['max']
+            quantifier = self.getQuantifier
+            if quantifier == '?':
+                return 1
+            else:
+                return self.classQuantList[0]['max']
         else:
             raise Exception("Node is not simple")
 
@@ -212,10 +220,9 @@ class NODE:
             return valCount
         elif quantifier == '?':
             return valCount + 1
-        elif self.classQuantList[0]['min'] and self.classQuantList[0]['max']:
+        elif self.classQuantList[0]['min'] is not None and self.classQuantList[0]['max']:
             return sum([valCount ** exponent for exponent in
                         range(self.classQuantList[0]['min'], self.classQuantList[0]['max'] + 1)])
-
         else:
             raise Exception('Check class quantifier')
 
@@ -579,13 +586,6 @@ class GRAPH:
             self.nodes.update({self.startNode.id_: self.startNode})
         else:
             pass
-
-        # test = self.deepCopy()
-        # test.parallelPartition()
-        # if test.parallelGraphs:
-        #     self.topLevelOrExists = True
-        # else:
-        #     self.topLevelOrExists = False
 
     def deepCopy(self):
         """
@@ -1161,7 +1161,7 @@ class GRAPH:
         """
         if any(self.nodes[nodeId].getQuantifier for nodeId in nodeList):
             lowestLow = min(
-                self.nodes[nodeId].getQuantifierMin if self.nodes[nodeId].getQuantifierMin else 1 for nodeId in
+                self.nodes[nodeId].getQuantifierMin if self.nodes[nodeId].getQuantifierMin is not None else 1 for nodeId in
                 nodeList)
             highestHigh = max(
                 self.nodes[nodeId].getQuantifierMax for nodeId in nodeList if self.nodes[nodeId].getQuantifierMax)
