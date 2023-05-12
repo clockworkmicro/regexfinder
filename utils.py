@@ -111,8 +111,12 @@ def getClassQuantList(inString):
                     entry['min'] = None
                     entry['max'] = None
                 elif len(vals) == 1:
-                    entry['min'] = int(vals[0])
-                    entry['max'] = int(vals[0])
+                    if entry['quantifier'][1] == ',':
+                        entry['min'] = 0
+                        entry['max'] = int(vals[0])
+                    else:
+                        entry['min'] = int(vals[0])
+                        entry['max'] = int(vals[0])
                 elif len(vals) == 2:
                     if int(vals[0]) > int(vals[1]):
                         raise Exception("Min and Max quantifier values are in the wrong place")
