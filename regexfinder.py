@@ -1057,22 +1057,15 @@ class GRAPH:
                 if self.edges:
                     return False
 
-        nodeAncestorsList = []
-        nodeDescendantsList = []
         # get the ancestors of all nodes in nodeList
         # adds only unique ancestors; no repeats
         for n in nodeList:
             currNodeAncestors = self.getNodeAncestors(n)
             currNodeDescendants = self.getNodeDescendants(n)
-
-            for currNodeAncestItem in currNodeAncestors:
-                if currNodeAncestItem not in nodeAncestorsList:
-                    nodeAncestorsList.append(currNodeAncestItem)
-
-            for currNodeDescItem in currNodeDescendants:
-                if currNodeDescItem not in nodeDescendantsList:
-                    nodeDescendantsList.append(currNodeDescItem)
-
+            
+            nodeAncestorsList = list(set(currNodeAncestItem for currNodeAncestItem in currNodeAncestors))
+            nodeDescendantsList = list(set(currNodeDescItem for currNodeDescItem in currNodeDescendants))
+            
         # List of ids
         topNodes = []
         bottomNodes = []
@@ -1087,43 +1080,23 @@ class GRAPH:
                 topNodes.append(n)
 
         # If the intersection is not distinct AND the nodes that intersect are not a part of nodeList
-
-        # List of ids
-        topNodeAncestors = []
-        topNodeDescendants = []
-        bottomNodeAncestors = []
-        bottomNodeDescendants = []
-
+        
         for topNode in topNodes:
-            [topNodeAncestors.append(topNodeAncest) for topNodeAncest in self.getNodeAncestors(topNode) if
-             topNodeAncest not in topNodeAncestors]
-
-            [topNodeDescendants.append(topNodeDesc) for topNodeDesc in self.getNodeDescendants(topNode) if
-             topNodeDesc not in topNodeDescendants]
+            topNodeAncestors = set(topNodeAncest for topNodeAncest in self.getNodeAncestors(topNode))
+            topNodeDescendants = set(topNodeDesc for topNodeDesc in self.getNodeDescendants(topNode))
 
         for bottomNode in bottomNodes:
-            [bottomNodeAncestors.append(bottomNodeAncest) for bottomNodeAncest in self.getNodeAncestors(bottomNode) if
-             bottomNodeAncest not in bottomNodeAncestors]
+            bottomNodeAncestors = set(bottomNodeAncest for bottomNodeAncest in self.getNodeAncestors(bottomNode))
+            bottomNodeDescendants = set(bottomNodeDesc for bottomNodeDesc in self.getNodeDescendants(bottomNode))
 
-            [bottomNodeDescendants.append(bottomNodeDesc) for bottomNodeDesc in self.getNodeDescendants(bottomNode) if
-             bottomNodeDesc not in bottomNodeDescendants]
-
-        setOfTopNodeAncest = set(topNodeAncestors)
-        setOfTopNodeDesc = set(topNodeDescendants)
-        setOfBottomNodeAncest = set(bottomNodeAncestors)
-        setOfbottomNodeDesc = set(bottomNodeDescendants)
-
-        intersectTABD = list(setOfTopNodeAncest.intersection(setOfbottomNodeDesc))
-        intersectTDBA = list(setOfTopNodeDesc.intersection(setOfBottomNodeAncest))
+        intersectTABD = list(topNodeAncestors.intersection(bottomNodeDescendants))
+        intersectTDBA = list(topNodeDescendants.intersection(bottomNodeAncestors))
 
         if not (intersectTABD or intersectTDBA):
             return True
         else:
             for node in intersectTABD:
-                try:
-                    nodeList.remove(node)
-                    nodeList.append(node)
-                except ValueError:
+                if node not in nodeList:
                     return False
 
             for node in intersectTDBA:
@@ -1338,6 +1311,22 @@ class GRAPH:
 
                 for nodeTuple in fullyMergedNodeInstructions:
                     self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
+                    
+    def multiMergeNodeIds(self, listOfNodeLists:list[list[str]]):
+        if len(listOfNodeLists) > 1:
+            startPos = 0
+            while startPos != len(listOfNodeLists):
+                toCompare = listOfNodeLists[startPos]
+                for nodeListPos in range(startPos+1, len(listOfNodeLists)):
+                    if not toCompare or not listOfNodeLists[nodeListPos]:
+                        raise Exception('Empty list provided. Cannot merge empty lists')
+                    intersection = set(listOfNodeLists[nodeListPos]).intersection(set(toCompare))
+                    if intersection:
+                        raise Exception("Nodes in set of merges must contain unique nodes")
+                startPos+=1
+            
+        for nodeList in listOfNodeLists:
+            self.mergeNodeIds(nodeList)
 
     def mergeNodes(self, nodeList:list[NODE]):
         """

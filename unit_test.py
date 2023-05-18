@@ -696,7 +696,38 @@ class GraphTest(unittest.TestCase):
         G.mergeNodes([n1, n2, n3, n4, n5, n6, n7, n8])
         self.assertEqual("[1-8a-h]{4,6}", G.outRegex)
 
+    def testMultiMerges(self):
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        n5 = NODE('e')
+        n6 = NODE('f')
+        n7 = NODE('g')
+        n8 = NODE('h')
 
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        e24 = EDGE(n2.id_, n4.id_)
+        e45 = EDGE(n4.id_, n5.id_)
+        e46 = EDGE(n4.id_, n6.id_)
+        e37 = EDGE(n3.id_, n7.id_)
+        e78 = EDGE(n7.id_, n8.id_)
+
+        edgeList = [e12, e23, e24, e45, e46, e37, e78]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        G.partition()
+        G1 = G.deepCopy()
+        
+        G.multiMergeNodeIds([[n4.id_, n5.id_, n6.id_], [n3.id_, n7.id_, n8.id_]])
+        G.multiMergeNodeIds([[n1.id_, n2.id_]])
+        
+        with self.assertRaises(Exception):
+            G1.multiMergeNodeIds([[n4.id_, n5.id_, n6.id_], [n3.id_, n7.id_, n8.id_, n4.id_]])
+            G1.multiMergeNodeIds([[n4.id_, n5.id_, n8.id_], [n3.id_, n7.id_, n8.id_]])
+            G1.multiMergeNodeIds([[n4.id_, n5.id_, n6.id_], []])
+            G1.multiMergeNodeIds([[]])
 
     def testAddNodes(self):
         n1 = NODE('a')
