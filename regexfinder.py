@@ -1046,7 +1046,7 @@ class GRAPH:
                 return False
         return True
                 
-    def isMergeNodesValid(self, nodeList:list[str]):
+    def checkGenerationalRelationship(self, nodeList:list[str]):
         """
         Returns boolean if a given list of node IDs is able to be merged
         i.e. a->b->c->d, 'b' and 'd' cannot be merged but 'b' 'c' d' can.
@@ -1102,7 +1102,6 @@ class GRAPH:
             for node in intersectTDBA:
                 if node not in nodeList:
                     return False
-
             return True
 
     def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
@@ -1113,7 +1112,7 @@ class GRAPH:
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
 
-        if self.isMergeNodesValid(nodeList):
+        if self.checkGenerationalRelationship(nodeList):
             M = np.array([self.nodes[n].vector.v for n in nodeList])
             #  print(M)
             newv = M.any(axis=0).astype(int)
@@ -1299,7 +1298,7 @@ class GRAPH:
         'stiched' into the graph to preserve continuity. NodeList should contain node IDs
         that are able to be merged
         """
-        if self.isMergeNodesValid(nodeList):
+        if self.checkGenerationalRelationship(nodeList):
             if len(nodeList) > 1:
                 # A graph made up of only the nodes
                 # nodes = [self.nodes[n] for n in nodeList]
@@ -1335,7 +1334,7 @@ class GRAPH:
         that are able to be merged
         """
         toCheck = [x.id_ for x in nodeList]
-        if self.isMergeNodesValid(toCheck):
+        if self.checkGenerationalRelationship(toCheck):
             if len(nodeList) > 1:
                 # A graph made up of only the nodes
                 nodeIdGraph = self.createSubGraphNodes(nodeList)
@@ -1372,7 +1371,7 @@ class GRAPH:
         subSets = self.getNodeIdSequences(k)
                 
         subSets = [list(subSet) for subSet in subSets if self.areNodesConnected(list(subSet))]
-        subSets = [list(subSet) for subSet in subSets if self.isMergeNodesValid(list(subSet))]
+        subSets = [list(subSet) for subSet in subSets if self.checkGenerationalRelationship(list(subSet))]
         
         if subSets is None:
             Gcopy = self.deepCopy()
@@ -1469,6 +1468,9 @@ class GRAPH:
         Partitions the graph into simple nodes. Should be run after instantiating a graph via regex.
         Potent method.
         """
+        if self.doesNgraphExist:
+            raise Exception("Graph is invalid, cointains N-graph")
+        
         self.simplify()
 
         if len(self.nodes) == 1:
@@ -1616,7 +1618,37 @@ class GRAPH:
     def multiGraphsExist(self):
         self.parallelPartition()
         return self.parallelGraphs != None
+    
+    @property
+    def doesNgraphExist(self):
+        for child in self.nodes.keys():
+            parentsList = self.getParents(child)
+            if len(parentsList) > 1:
+                for parent in parentsList:
+                    childrenList = self.getChildren(parent)
+                    if len(childrenList) > 1: # If the node has multiple parents, and that parent has multiple children
+                        for kid in childrenList:
+                            if kid == child:
+                                continue
+                             # Check if it's a straight shot (exeption to the multiple children rule)
+                            result = self.checkAlternatePath(kid, child)
+                            if not result:
+                                return True
+        return False
+    
+    def checkAlternatePath(self, currNode, nodeInQuestion):
+        if not self.getChildren(currNode):
+            return False
+        else:
+            results = []
+            for child in self.getChildren(currNode):
+                if child == nodeInQuestion:
+                    return True
+                else:
+                    results.append(self.checkAlternatePath(child, nodeInQuestion))
+            return any(results)
 
+                
     @property
     def cardinality(self):
         """

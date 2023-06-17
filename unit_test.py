@@ -930,7 +930,74 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(56.2364, g2.log2Cardinality)
         
         self.assertEqual(154.2364, g2.phi)
+        
+        
+        
+        
+    def testNgraphCheck(self):
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        n5 = NODE('e')
+        
+        gE1 = EDGE(n1.id_, n2.id_)
+        gE2 = EDGE(n3.id_, n2.id_)
+        gE3 = EDGE(n3.id_, n4.id_)
+        gE4 = EDGE(n5.id_, n4.id_)
+        
+        edgeList = [gE1, gE2, gE3, gE4]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        self.assertTrue(G.doesNgraphExist)
+        with self.assertRaises(Exception):
+            G.partition()
 
+        
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        n5 = NODE('e')
+        n6 = NODE('f')
+        n7 = NODE('g')
+        n8 = NODE('h')
+
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        e24 = EDGE(n2.id_, n4.id_)
+        e45 = EDGE(n4.id_, n5.id_)
+        e46 = EDGE(n4.id_, n6.id_)
+        e37 = EDGE(n3.id_, n7.id_)
+        e78 = EDGE(n7.id_, n8.id_)
+
+        edgeList = [e12, e23, e24, e45, e46, e37, e78]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+
+        self.assertFalse(G.doesNgraphExist)
+        
+        
+    def testStraighShotNgraph(self):
+        
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        n5 = NODE('e')
+        
+        gE1 = EDGE(n1.id_, n2.id_)
+        gE2 = EDGE(n3.id_, n2.id_)
+        gE3 = EDGE(n3.id_, n4.id_)
+        gE4 = EDGE(n5.id_, n4.id_)
+        gE5 = EDGE(n1.id_, n3.id_)
+        
+        edgeList = [gE1, gE2, gE3, gE4, gE5]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        self.assertTrue(G.doesNgraphExist)
+        with self.assertRaises(Exception):
+            G.partition()
 
 
 
