@@ -1103,6 +1103,27 @@ class GRAPH:
                 if node not in nodeList:
                     return False
             return True
+        
+    def willNgraphAppear(self, nodeList:list[str]):
+        
+        if self.checkGenerationalRelationship(nodeList):
+            for currNode in nodeList:
+                currNodeParents = self.getParents(currNode)
+                if currNodeParents in nodeList:
+                    continue
+                else:
+                    for parent in currNodeParents:
+                        parentsChildren = self.getChildren(parent)
+                        if len(parentsChildren)>1:
+                            for kid in parentsChildren:
+                                if kid == currNode:
+                                    continue
+                                # Check if it's a straight shot (exeption to the multiple children rule)
+                                result = self.checkAlternatePath(kid, currNode)
+                                if not result:
+                                    return True
+            return False
+        
 
     def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
         """
