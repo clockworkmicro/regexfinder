@@ -1,11 +1,12 @@
 import copy
+import random
+from itertools import combinations
 from math import inf
+
+import more_itertools as mit
 import numpy as np
 import pandas as pd
 from graphviz import Digraph
-from itertools import combinations
-import more_itertools as mit
-import random
 
 from utils import *
 
@@ -1048,7 +1049,7 @@ class GRAPH:
                 
     def checkGenerationalRelationship(self, nodeList:list[str]):
         """
-        Returns boolean if a given list of node IDs is able to be merged
+        Returns True if a given list of node IDs is able to be merged
         i.e. a->b->c->d, 'b' and 'd' cannot be merged but 'b' 'c' d' can.
         """
         if self.getLonelyNodes():
@@ -1059,12 +1060,14 @@ class GRAPH:
 
         # get the ancestors of all nodes in nodeList
         # adds only unique ancestors; no repeats
+        nodeAncestorsList = []
+        nodeDescendantsList = []
         for n in nodeList:
             currNodeAncestors = self.getNodeAncestors(n)
             currNodeDescendants = self.getNodeDescendants(n)
             
-            nodeAncestorsList = list(set(currNodeAncestItem for currNodeAncestItem in currNodeAncestors))
-            nodeDescendantsList = list(set(currNodeDescItem for currNodeDescItem in currNodeDescendants))
+            nodeAncestorsList.extend(list(set(currNodeAncestItem for currNodeAncestItem in currNodeAncestors)))
+            nodeDescendantsList.extend(list(set(currNodeDescItem for currNodeDescItem in currNodeDescendants)))
             
         # List of ids
         topNodes = []
@@ -1106,24 +1109,41 @@ class GRAPH:
         
     def willNgraphAppear(self, nodeList:list[str]):
         
-        if self.checkGenerationalRelationship(nodeList):
-            for currNode in nodeList:
+        tempList = nodeList.copy()
+        for currNode in tempList: # Removing all nodes that are directly related to each other
+            currNodeDescendants = self.getNodeDescendants(currNode)
+            for kid in currNodeDescendants:
+                if kid in tempList:
+                    tempList.remove(kid)
+        
+        totalParents = []
+        for node in tempList:
+            parentList = self.getParents(node)
+            if parentList:
+                totalParents.extend(parentList)
+        
+        if len(totalParents)>1:
+            for currNode in tempList:
                 currNodeParents = self.getParents(currNode)
-                if currNodeParents in nodeList:
-                    continue
-                else:
+                if not set(currNodeParents).issubset(set(tempList)):
                     for parent in currNodeParents:
                         parentsChildren = self.getChildren(parent)
                         if len(parentsChildren)>1:
-                            for kid in parentsChildren:
-                                if kid == currNode:
-                                    continue
-                                # Check if it's a straight shot (exeption to the multiple children rule)
-                                result = self.checkAlternatePath(kid, currNode)
-                                if not result:
-                                    return True
-            return False
+                            if not set(parentsChildren).issubset(tempList):
+                                for kid in parentsChildren:
+                                    if kid != currNode:
+                                        # Check if it's a straight shot (exeption to the multiple children rule)
+                                        result = self.checkAlternatePath(kid, currNode)
+                                        if not result:
+                                            # If there are no other alternate pathes, it is not a straight shot
+                                            return True
+        return False
         
+    def isMergeNodesValid(self, nodeList:list[str]):
+        if self.checkGenerationalRelationship(nodeList):
+            if not self.willNgraphAppear(nodeList):
+                return True
+        return False
 
     def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
         """
@@ -1133,7 +1153,7 @@ class GRAPH:
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
 
-        if self.checkGenerationalRelationship(nodeList):
+        if self.isMergeNodesValid(nodeList):
             M = np.array([self.nodes[n].vector.v for n in nodeList])
             #  print(M)
             newv = M.any(axis=0).astype(int)
@@ -1319,7 +1339,7 @@ class GRAPH:
         'stiched' into the graph to preserve continuity. NodeList should contain node IDs
         that are able to be merged
         """
-        if self.checkGenerationalRelationship(nodeList):
+        if self.isMergeNodesValid(nodeList):
             if len(nodeList) > 1:
                 # A graph made up of only the nodes
                 # nodes = [self.nodes[n] for n in nodeList]
@@ -1355,7 +1375,7 @@ class GRAPH:
         that are able to be merged
         """
         toCheck = [x.id_ for x in nodeList]
-        if self.checkGenerationalRelationship(toCheck):
+        if self.isMergeNodesValid(toCheck):
             if len(nodeList) > 1:
                 # A graph made up of only the nodes
                 nodeIdGraph = self.createSubGraphNodes(nodeList)
@@ -1392,7 +1412,7 @@ class GRAPH:
         subSets = self.getNodeIdSequences(k)
                 
         subSets = [list(subSet) for subSet in subSets if self.areNodesConnected(list(subSet))]
-        subSets = [list(subSet) for subSet in subSets if self.checkGenerationalRelationship(list(subSet))]
+        subSets = [list(subSet) for subSet in subSets if self.isMergeNodesValid(list(subSet))]
         
         if subSets is None:
             Gcopy = self.deepCopy()
