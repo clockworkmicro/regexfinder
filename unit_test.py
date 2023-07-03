@@ -164,6 +164,7 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex='a(b|c)d')
         g1.partition()
         self.assertEqual(g1.startNode.regex, 'a(b|c)d', "Should be equal")
+        self.assertEqual(3, len(g1.sequentialGraphs))
         g2 = g1.sequentialGraphs[1]
         self.assertEqual(2, len(g2.parallelGraphs))
         self.assertEqual(2, g2.cardinality)
@@ -207,8 +208,8 @@ class GraphTest(unittest.TestCase):
         g4 = GRAPH(regex='a|(b[cd])')
         g4.partition()
         self.assertEqual(3, g4.cardinality)
-
     def testGraphCardinalty(self):
+
         g1 = GRAPH(regex='\d(a(c|d{2}|e{3})|(r{2}|\d)v)[yz]')
         g1.partition()
         self.assertEqual(140, g1.cardinality)
@@ -317,6 +318,7 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex='(a(b|c(e|d)f)g)|h')
         g1.partition()
         self.assertEqual(len(g1.parallelGraphs), 2)
+        
 
     def testSequentialPartition1(self):
         g1 = GRAPH(regex='a(bc|de)')
@@ -328,7 +330,14 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
         g1.simplify()
         g1.sequentialPartition()
+        self.assertEqual(len(g1.sequentialGraphs), 3)
+        
+    def testSequentialPartition3(self):
+        g1 = GRAPH(regex='c(e{4}f{5}|d|g)h{2}i')
+        g1.simplify()
+        g1.sequentialPartition()
         self.assertEqual(len(g1.sequentialGraphs), 4)
+        
 
     def testSeqPartition(self):
         g1 = GRAPH(regex='[abcd][efg]')

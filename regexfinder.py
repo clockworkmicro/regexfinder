@@ -270,7 +270,7 @@ class NODE:
     def isPureSimple(self):
         """
         Checks if a node's regex is one 'item' i.e. 'a', \d, 'y' not [ab]
-        
+
         Returns:
             Boolean
         """
@@ -362,7 +362,7 @@ class VECTOR:
         if toReturn == '[\\dA-Z_a-z]':
             toReturn = '[\\w]'
         return toReturn
-    
+
     @property
     def getndArray(self):
         return self.v
@@ -525,7 +525,7 @@ class WORDCOLLECTION:
                 eq[k] = (
                     self.setToStr(self.prefixDicts[i].get(k, None)), self.setToStr(self.suffixDicts[i].get(k, None)))
 
-            # The keys of eq are the alphabet. The values are each a tuple, where the first value is a 
+            # The keys of eq are the alphabet. The values are each a tuple, where the first value is a
             # string of the prefixes and the second is a string of the suffixes.
             classes = self.partitionValueEquality(eq)
 
@@ -552,8 +552,8 @@ class GRAPH:
         """
         CHECK
         A Graph is a structure made of nodes and edges. Graphs are built by priority from regex,
-        followed by wordlist and nodes, a dictionary. If a graph is built from a regex, a non-simple node will be 
-        made and added to the nodes dictionary. None however are required to instantiate a graph object. 
+        followed by wordlist and nodes, a dictionary. If a graph is built from a regex, a non-simple node will be
+        made and added to the nodes dictionary. None however are required to instantiate a graph object.
         Edges are not required to be made with nodes.
         """
         self.regex = regex
@@ -750,7 +750,7 @@ class GRAPH:
         Returns a list of node IDs that have the same parents and children.
         """
         # two nodes are equivalent if they have the same parents and children
-        tempDict = {}
+        tempDict:dict[tuple[str, str], str] = {}
         for id_ in self.nodes.keys():
             parents = tuple(sorted(self.getParents(id_)))
             children = tuple(sorted(self.getChildren(id_)))
@@ -787,7 +787,7 @@ class GRAPH:
         """
         Returns a list of node IDs of ancestors, the parents of a given node's parents
         """
-        ancestors = []
+        ancestors:list[str] = []
         parents = self.getParents(id_)
         while parents:
             parent = parents.pop()
@@ -810,11 +810,47 @@ class GRAPH:
             descendants += nextGen
         return descendants
 
+    def getGroupNodeAncestors(self, nodeList:list[str]):
+        
+        totalAncestors = []
+        for node in nodeList:
+            nodeAncestors = self.getNodeAncestors(node)
+            toRemove = []
+            for ancestor in nodeAncestors:
+                if ancestor in nodeList:
+                    toRemove.append(ancestor)
+                    
+            for remove in toRemove:
+                nodeAncestors.remove(remove)
+                
+            if nodeAncestors:
+                totalAncestors.extend(nodeAncestors)
+        
+        return totalAncestors
+        
+    def getGroupNodeDescendants(self, nodeList:list[str]):
+        
+        totalDescendants = []
+        for node in nodeList:
+            nodeDescendants = self.getNodeDescendants(node)
+            toRemove = []
+            for descendant in nodeDescendants:
+                if descendant in nodeList:
+                    toRemove.append(descendant)
+                    
+            for remove in toRemove:
+                nodeDescendants.remove(remove)
+                
+            if nodeDescendants:
+                totalDescendants.extend(nodeDescendants)
+        
+        return totalDescendants
+    
     # A set of nodes is a CutSet if the set of nodes union with all its ancestors
     # and al of its descendants yields the entire graph
-    def testCutSet(self, inList:str):
+    def testCutSet(self, inList:list[str]):
         """
-        CHECK
+
         """
         if not all([id_ in self.nodes.keys() for id_ in inList]):
             raise Exception('Node included in inSet that is not in self.nodes.keys().')
@@ -826,14 +862,118 @@ class GRAPH:
         for id_ in inList:
             allAncestors += self.getNodeAncestors(id_)
             allDescendants += self.getNodeDescendants(id_)
+        # The union of all the ancestors, descendants, and initial nodes should yeild the entire graph
+        # if it is a valid cutSet
         return set(inList + allAncestors + allDescendants) == set(self.nodes.keys())
 
     def getCutSets(self):
         """
         CHECK
+        Between every eqClass will be a group of nodes that behave like an eqClass together
         """
         eqClasses = self.getNodeEqClasses()
-        return [sorted(eqClass) for eqClass in eqClasses if self.testCutSet(eqClass)]
+
+        sortedEqClasses = [sorted(eqClass) for eqClass in eqClasses if self.testCutSet(eqClass)]
+        fullOrderedCutSets = []
+        
+        
+        if (len(sortedEqClasses)) == 1:
+            ancestors = self.getNodeAncestors(eqClasses[0][0])
+            if ancestors:
+                sortedEqClasses.append(ancestors)
+            descendants = self.getNodeDescendants(eqClasses[0][0])
+            if descendants:
+                sortedEqClasses.append(descendants)
+            return sortedEqClasses
+
+        flat_list = [item for sublist in sortedEqClasses for item in sublist]
+        if flat_list != list(self.nodes.keys()):
+            
+            '''
+            Get the highest eqClass, then move down from there.
+            Get the next eqClass below it, check for any in between nodes
+            '''
+            
+            nodesNoParents = self.getNodesNoParents()
+            topEqClass = []
+            
+            for eqClass in sortedEqClasses:
+                if set(nodesNoParents).issubset(set(eqClass)):
+                    topEqClass = eqClass.copy()
+            
+            if not topEqClass:
+                for node in nodesNoParents:
+                    topEqClass = self.getNextEqClass(node, sortedEqClasses)
+            
+            totalTopEqGraph = []
+            for node in topEqClass:
+                nodeAncestors = self.getNodeAncestors(node)
+                toRemove = []
+                for ancestor in nodeAncestors:
+                    if ancestor in topEqClass:
+                        toRemove.append(ancestor)
+                        
+                for remove in toRemove:
+                    nodeAncestors.remove(remove)
+
+                if nodeAncestors:
+                    totalTopEqGraph.extend(nodeAncestors)
+            
+            if totalTopEqGraph:
+                currentCutSet = totalTopEqGraph.copy()
+            else:
+                currentCutSet = topEqClass.copy()
+            
+            fullOrderedCutSets.append(sorted(currentCutSet))
+            arbitraryChild = self.getChildren(currentCutSet[0])[0]
+            nextCutSet:list[str] = self.getNextEqClass(arbitraryChild, sortedEqClasses)
+            inBetweenGraphs:list[str] = []
+            while nextCutSet:
+                
+                totalDescendants = self.getGroupNodeDescendants(currentCutSet)
+                
+                totalAncestors = self.getGroupNodeAncestors(nextCutSet)
+                
+                inBetween = set(totalAncestors).intersection(set(totalDescendants))
+
+                if inBetween:
+                    fullOrderedCutSets.append(sorted(inBetween))
+                fullOrderedCutSets.append(sorted(nextCutSet))
+                
+                currentCutSet = nextCutSet.copy()
+                arbitraryChild = self.getChildren(currentCutSet[0])
+                if arbitraryChild:
+                    nextCutSet:list[str] = self.getNextEqClass(arbitraryChild[0], sortedEqClasses)
+                else:
+                    nextCutSet = None
+
+            lastEqGraph = currentCutSet.copy()
+            lastEqGraphDescendants = self.getGroupNodeDescendants(lastEqGraph)
+            
+            if lastEqGraphDescendants:
+                if lastEqGraphDescendants not in inBetweenGraphs:
+                    fullOrderedCutSets.append(sorted(lastEqGraphDescendants))
+        else:
+            fullOrderedCutSets = sortedEqClasses
+
+        return fullOrderedCutSets
+
+    def getNextEqClass(self, currNode:str, eqClassList:list[list[str]]):
+        
+        for eqClass in eqClassList:
+            if currNode in eqClass:
+                return eqClass
+        
+        children = self.getChildren(currNode)
+        toReturn = None
+        
+        if children:
+            for child in children:
+                toReturn = self.getNextEqClass(child, eqClassList)
+                if not toReturn:
+                    return toReturn
+                
+        return toReturn
 
     def getNextCutSet(self, id_:str):
         """
@@ -1033,7 +1173,7 @@ class GRAPH:
                 # Test if tuple is necesarry
                 sharedDescendantSets.add(tuple(set([x for y in matches for x in y]))) # otherwise
         return sharedDescendantSets
-    
+
     def areNodesConnected(self, nodeList:list[str]):
         for node in nodeList:
             loopBreak = False
@@ -1046,7 +1186,7 @@ class GRAPH:
             if not loopBreak:
                 return False
         return True
-                
+
     def checkGenerationalRelationship(self, nodeList:list[str]):
         """
         Returns True if a given list of node IDs is able to be merged
@@ -1065,10 +1205,10 @@ class GRAPH:
         for n in nodeList:
             currNodeAncestors = self.getNodeAncestors(n)
             currNodeDescendants = self.getNodeDescendants(n)
-            
+
             nodeAncestorsList.extend(list(set(currNodeAncestItem for currNodeAncestItem in currNodeAncestors)))
             nodeDescendantsList.extend(list(set(currNodeDescItem for currNodeDescItem in currNodeDescendants)))
-            
+
         # List of ids
         topNodes = []
         bottomNodes = []
@@ -1083,7 +1223,7 @@ class GRAPH:
                 topNodes.append(n)
 
         # If the intersection is not distinct AND the nodes that intersect are not a part of nodeList
-        
+
         for topNode in topNodes:
             topNodeAncestors = set(topNodeAncest for topNodeAncest in self.getNodeAncestors(topNode))
             topNodeDescendants = set(topNodeDesc for topNodeDesc in self.getNodeDescendants(topNode))
@@ -1106,22 +1246,22 @@ class GRAPH:
                 if node not in nodeList:
                     return False
             return True
-        
+
     def willNgraphAppear(self, nodeList:list[str]):
-        
+
         tempList = nodeList.copy()
         for currNode in tempList: # Removing all nodes that are directly related to each other
             currNodeDescendants = self.getNodeDescendants(currNode)
             for kid in currNodeDescendants:
                 if kid in tempList:
                     tempList.remove(kid)
-        
+
         totalParents = []
         for node in tempList:
             parentList = self.getParents(node)
             if parentList:
                 totalParents.extend(parentList)
-        
+
         if len(totalParents)>1:
             for currNode in tempList:
                 currNodeParents = self.getParents(currNode)
@@ -1138,12 +1278,9 @@ class GRAPH:
                                             # If there are no other alternate pathes, it is not a straight shot
                                             return True
         return False
-        
+
     def isMergeNodesValid(self, nodeList:list[str]):
-        if self.checkGenerationalRelationship(nodeList):
-            if not self.willNgraphAppear(nodeList):
-                return True
-        return False
+        return (self.checkGenerationalRelationship(nodeList) and not self.willNgraphAppear(nodeList))
 
     def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
         """
@@ -1170,7 +1307,7 @@ class GRAPH:
     def createMergedParallelNodesQuantifier(self, nodeList:list[str]):
         """
         Returns a new quantifier (string) made from the merging of ALL nodes that are parallel
-        to eachother. None is returned if no quantifier ({1}) is found. 
+        to eachother. None is returned if no quantifier ({1}) is found.
         """
         if any(self.nodes[nodeId].getQuantifier for nodeId in nodeList):
             lowestLow = min(
@@ -1189,7 +1326,7 @@ class GRAPH:
     def createMergedSequentialNodesQuantifier(self, nodeList:list[str]):
         """
         Returns a new quantifier (string) made from the merging of ALL nodes that are sequential
-        to eachother. If no quantifier is found ({1}), the length of the list of node IDs is returned. 
+        to eachother. If no quantifier is found ({1}), the length of the list of node IDs is returned.
         """
         if any(self.nodes[nodeId].getQuantifier for nodeId in nodeList):
             lowestLows = [self.nodes[nodeId].getQuantifierMin if self.nodes[nodeId].getQuantifierMin
@@ -1351,7 +1488,7 @@ class GRAPH:
 
                 for nodeTuple in fullyMergedNodeInstructions:
                     self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
-                    
+
     def multiMergeNodeIds(self, listOfNodeLists:list[list[str]]):
         if len(listOfNodeLists) > 1:
             startPos = 0
@@ -1364,7 +1501,7 @@ class GRAPH:
                     if intersection:
                         raise Exception("Nodes in set of merges must contain unique nodes")
                 startPos+=1
-            
+
         for nodeList in listOfNodeLists:
             self.mergeNodeIds(nodeList)
 
@@ -1405,15 +1542,15 @@ class GRAPH:
         subG = GRAPH(nodes=subNodes, edges=subEdges, alpha=self.alpha)
         return subG
 
-    def mergeFirstValidSubgraph(self, k:int): 
+    def mergeFirstValidSubgraph(self, k:int):
         if len(self.nodes) == 1:
             return True
 
         subSets = self.getNodeIdSequences(k)
-                
+
         subSets = [list(subSet) for subSet in subSets if self.areNodesConnected(list(subSet))]
         subSets = [list(subSet) for subSet in subSets if self.isMergeNodesValid(list(subSet))]
-        
+
         if subSets is None:
             Gcopy = self.deepCopy()
             phi1 = Gcopy.phi
@@ -1446,16 +1583,16 @@ class GRAPH:
             for graph in self.sequentialGraphs:
                 potentialMerges = graph.mergeValidParGraphsRecursive()
                 if potentialMerges:
-                    # Check recursive code to make sure this is unnecesary 
+                    # Check recursive code to make sure this is unnecesary
                     if isinstance(potentialMerges[0], list):
                         for nodeSet in potentialMerges:
                             merges.append(nodeSet)
                     else:
                         merges.append(potentialMerges)
-                        
+
             for toMerge in merges:
                 self.mergeNodeIds(toMerge)
-    
+
     def mergeValidParGraphsRecursive(self):
         if len(self.nodes) == 1:
             return None
@@ -1471,20 +1608,20 @@ class GRAPH:
                 if potentialReturn:
                     fullToReturn.append(potentialReturn)
             return fullToReturn
-            
+
     def reducePhi(self, k:int):
         hasBeenUpdated = False
         while not hasBeenUpdated:
             hasBeenUpdated = self.mergeFirstValidSubgraph(k)
         return self.phi
-        
+
     def testReducePhi(self, k:int):
         topCopy = self.deepCopy()
         hasBeenUpdated = False
         while not hasBeenUpdated:
             hasBeenUpdated = topCopy.mergeFirstValidSubgraph(k)
         return topCopy.phi
-    
+
     def optimizeReducePhi(self):
         lowestPhi = self.phi
         optimalSequenceLength = 0
@@ -1499,7 +1636,7 @@ class GRAPH:
             return self.phi, optimalSequenceLength
         else:
             return None
-    
+
     def getNodeIdSequences(self, sequenceLength):
         return list(combinations(self.nodes.keys(), sequenceLength))
 
@@ -1511,7 +1648,7 @@ class GRAPH:
         """
         if self.doesNgraphExist:
             raise Exception("Graph is invalid, cointains N-graph")
-        
+
         self.simplify()
 
         if len(self.nodes) == 1:
@@ -1520,28 +1657,7 @@ class GRAPH:
         else:
             self.parallelPartition()
             if self.parallelGraphs:  # is not none
-                graphsToCheck = []
-                for graph in self.parallelGraphs:
-                    graphsToCheck.append(sorted(list(graph.nodes.keys())))
-                startPop = graphsToCheck.pop(0)
-                currGraph = startPop
-                redundantParGraphs = False
-                if graphsToCheck[0] == startPop:
-                    redundantParGraphs = True
-                else:
-                    while graphsToCheck[0] != startPop:
-                        if currGraph in graphsToCheck:
-                            redundantParGraphs = True
-                            break
-                        graphsToCheck.append(currGraph)
-                        currGraph = graphsToCheck.pop(0)
-                    
-                if not redundantParGraphs:
-                    [g.partition() for g in self.parallelGraphs]
-                else:
-                    self.parallelGraphs = None
-                    self.sequentialPartition()
-                    [g.partition() for g in self.sequentialGraphs]
+                [g.partition() for g in self.parallelGraphs]
             else:
                 self.sequentialPartition()
                 [g.partition() for g in self.sequentialGraphs]
@@ -1599,51 +1715,33 @@ class GRAPH:
             pass
         return
     
-    def isParallelGraphsPossible(self):
-        topNodes = self.getNodesNoParents()
-        if len(topNodes) == 1:
-            return False
-        elif self.getLonelyNodes():
-            return True
-        else:
-            sharedDescendants = set(self.getNodeDescendants(topNodes[0]))
-            for x in range (1, len(topNodes)):
-                sharedDescendants = sharedDescendants.intersection(set(self.getNodeDescendants(topNodes[x])))
-            if sharedDescendants:
-                return False
-            else:
-                return True
-            
+
     def parallelPartition(self):
         """
         CHECK
         """
-        if not self.isParallelGraphsPossible():
+        sharedDescendantSets = self.getSharedDecendantSets()
+
+        parallel = []
+        for s in sharedDescendantSets:
+
+            nodes = set(s)
+            for node in s:
+                for descendant in self.getNodeDescendants(node):
+                    nodes.add(descendant)
+            parallel.append(nodes)
+        if len(parallel) == 1:
             self.parallelGraphs = None
         else:
-            sharedDescendantSets = self.getSharedDecendantSets()
+            self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
 
-            parallel = []
-            for s in sharedDescendantSets:
-
-                nodes = set(s)
-                for node in s:
-                    for descendant in self.getNodeDescendants(node):
-                        nodes.add(descendant)
-                parallel.append(nodes)
-            if len(parallel) == 1:
-                self.parallelGraphs:list[GRAPH] = None
-            elif sorted(parallel) == sorted(list(self.nodes.keys())):
-                self.parallelGraphs:list[GRAPH] = None
-            else:
-                self.parallelGraphs:list[GRAPH] = [self.createSubGraph(nodeSet) for nodeSet in parallel]
 
     def reduce(self):
         """Reduces each node in the graph, i.e. abc -> a-c
         """
         for node in self.nodes.values():
             node.reduce()
-            
+
     def getStartNodeId(self):
         if self.multiGraphsExist:
             toReturn = []
@@ -1654,12 +1752,12 @@ class GRAPH:
             return list(self.sequentialGraphs[0].nodes.keys())[0]
         else:
             return list(self.nodes.keys())[0]
-            
+
     @property
     def multiGraphsExist(self):
         self.parallelPartition()
         return self.parallelGraphs != None
-    
+
     @property
     def doesNgraphExist(self):
         for child in self.nodes.keys():
@@ -1676,7 +1774,7 @@ class GRAPH:
                             if not result:
                                 return True
         return False
-    
+
     def checkAlternatePath(self, currNode, nodeInQuestion):
         if not self.getChildren(currNode):
             return False
@@ -1689,7 +1787,6 @@ class GRAPH:
                     results.append(self.checkAlternatePath(child, nodeInQuestion))
             return any(results)
 
-                
     @property
     def cardinality(self):
         """
@@ -1702,7 +1799,7 @@ class GRAPH:
         else:
             k = list(self.nodes.keys())[0]
             return self.nodes[k].cardinality
-        
+
     @property
     def log2Cardinality(self):
         if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
@@ -1727,10 +1824,9 @@ class GRAPH:
         """
         return len(self.outRegex)
 
-
     def outRegexRecursive(self):
         """
-        Returns the joined regexes of each individual subNode, 
+        Returns the joined regexes of each individual subNode,
         based on parallel or sequential relationship.
         """
         if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
@@ -1754,7 +1850,7 @@ class GRAPH:
             return toReturn[1:-1]
         else:
             return toReturn
-            
+
     @property
     def phi(self):
         """
