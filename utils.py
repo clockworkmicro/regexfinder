@@ -68,10 +68,20 @@ def outerParentheses(inString):
 
 def hasOuterParentheses(inString):
     if inString[0] == '(':
-        for s in range(len(inString)-1):
-            if inString[s] == ')' and s == len(inString)-1:
-                return True
+        stackCounter = 0
+        for s in range(len(inString)):
+            if stackCounter == 0:
+                if s != 0 and s != len(inString)-1:
+                    return False
+                
+            if inString[s] == ')':
+                stackCounter -= 1
+                
+            elif inString[s] == '(':
+                    stackCounter += 1
+        return True
     return False
+                
     
 
 def getParenthesesSegments(inString):

@@ -231,6 +231,7 @@ class GraphTest(unittest.TestCase):
         self.assertEqual(4, g3.K)
         g4 = GRAPH(regex='a|b[cd]')
         g4.partition()
+        g4.outRegex
         self.assertEqual(7, g4.K)
 
     def testGraphK(self):
@@ -330,7 +331,7 @@ class GraphTest(unittest.TestCase):
         g1 = GRAPH(regex='a(b|(c(d|e)))(f|g)h')
         g1.simplify()
         g1.sequentialPartition()
-        self.assertEqual(len(g1.sequentialGraphs), 3)
+        self.assertEqual(len(g1.sequentialGraphs), 4)
         
     def testSequentialPartition3(self):
         g1 = GRAPH(regex='c(e{4}f{5}|d|g)h{2}i')

@@ -810,41 +810,29 @@ class GRAPH:
             descendants += nextGen
         return descendants
 
-    def getGroupNodeAncestors(self, nodeList:list[str]):
+    def getGroupNodeAncestOrDesc(self, nodeList:list[str], relationship:str):
         
-        totalAncestors = []
+        if relationship.lower() != 'ancestors' and relationship.lower() != 'descendants':
+            raise Exception("Relationship is either 'ancestors' or 'descendants'")
+        
+        totalRelatives = []
         for node in nodeList:
-            nodeAncestors = self.getNodeAncestors(node)
+            if relationship.lower() == 'ancestors':
+                nodeRelatives = self.getNodeAncestors(node)
+            else:
+                nodeRelatives = self.getNodeDescendants(node)
             toRemove = []
-            for ancestor in nodeAncestors:
+            for ancestor in nodeRelatives:
                 if ancestor in nodeList:
                     toRemove.append(ancestor)
                     
             for remove in toRemove:
-                nodeAncestors.remove(remove)
+                nodeRelatives.remove(remove)
                 
-            if nodeAncestors:
-                totalAncestors.extend(nodeAncestors)
+            if nodeRelatives:
+                totalRelatives.extend(nodeRelatives)
         
-        return totalAncestors
-        
-    def getGroupNodeDescendants(self, nodeList:list[str]):
-        
-        totalDescendants = []
-        for node in nodeList:
-            nodeDescendants = self.getNodeDescendants(node)
-            toRemove = []
-            for descendant in nodeDescendants:
-                if descendant in nodeList:
-                    toRemove.append(descendant)
-                    
-            for remove in toRemove:
-                nodeDescendants.remove(remove)
-                
-            if nodeDescendants:
-                totalDescendants.extend(nodeDescendants)
-        
-        return totalDescendants
+        return totalRelatives
     
     # A set of nodes is a CutSet if the set of nodes union with all its ancestors
     # and al of its descendants yields the entire graph
@@ -875,26 +863,25 @@ class GRAPH:
 
         sortedEqClasses = [sorted(eqClass) for eqClass in eqClasses if self.testCutSet(eqClass)]
         fullOrderedCutSets = []
+        nodesNoParents = self.getNodesNoParents()
         
         
         if (len(sortedEqClasses)) == 1:
-            ancestors = self.getNodeAncestors(eqClasses[0][0])
+            ancestors = self.getNodeAncestors(sortedEqClasses[0][0])
             if ancestors:
                 sortedEqClasses.append(ancestors)
-            descendants = self.getNodeDescendants(eqClasses[0][0])
+            descendants = self.getNodeDescendants(sortedEqClasses[0][0])
             if descendants:
                 sortedEqClasses.append(descendants)
-            return sortedEqClasses
 
         flat_list = [item for sublist in sortedEqClasses for item in sublist]
-        if flat_list != list(self.nodes.keys()):
+        if sorted(flat_list) != sorted(list(self.nodes.keys())) and len(sortedEqClasses) != 1:
             
             '''
             Get the highest eqClass, then move down from there.
             Get the next eqClass below it, check for any in between nodes
             '''
             
-            nodesNoParents = self.getNodesNoParents()
             topEqClass = []
             
             for eqClass in sortedEqClasses:
@@ -905,19 +892,7 @@ class GRAPH:
                 for node in nodesNoParents:
                     topEqClass = self.getNextEqClass(node, sortedEqClasses)
             
-            totalTopEqGraph = []
-            for node in topEqClass:
-                nodeAncestors = self.getNodeAncestors(node)
-                toRemove = []
-                for ancestor in nodeAncestors:
-                    if ancestor in topEqClass:
-                        toRemove.append(ancestor)
-                        
-                for remove in toRemove:
-                    nodeAncestors.remove(remove)
-
-                if nodeAncestors:
-                    totalTopEqGraph.extend(nodeAncestors)
+            totalTopEqGraph = self.getGroupNodeAncestOrDesc(topEqClass, 'ancestors')
             
             if totalTopEqGraph:
                 currentCutSet = totalTopEqGraph.copy()
@@ -930,9 +905,9 @@ class GRAPH:
             inBetweenGraphs:list[str] = []
             while nextCutSet:
                 
-                totalDescendants = self.getGroupNodeDescendants(currentCutSet)
+                totalDescendants = self.getGroupNodeAncestOrDesc(currentCutSet, 'descendants')
                 
-                totalAncestors = self.getGroupNodeAncestors(nextCutSet)
+                totalAncestors = self.getGroupNodeAncestOrDesc(nextCutSet, 'ancestors')
                 
                 inBetween = set(totalAncestors).intersection(set(totalDescendants))
 
@@ -948,17 +923,27 @@ class GRAPH:
                     nextCutSet = None
 
             lastEqGraph = currentCutSet.copy()
-            lastEqGraphDescendants = self.getGroupNodeDescendants(lastEqGraph)
+            lastEqGraphDescendants = self.getGroupNodeAncestOrDesc(lastEqGraph, 'descendants')
             
             if lastEqGraphDescendants:
                 if lastEqGraphDescendants not in inBetweenGraphs:
                     fullOrderedCutSets.append(sorted(lastEqGraphDescendants))
         else:
-            fullOrderedCutSets = sortedEqClasses
+            for eqClass in sortedEqClasses:
+                if set(nodesNoParents).issubset(set(eqClass)):
+                    fullOrderedCutSets.append(sortedEqClasses.pop(sortedEqClasses.index(eqClass)))
+                    break
+            
+            while sortedEqClasses:
+                toAppend = self.getNextEqClass(fullOrderedCutSets[len(fullOrderedCutSets)-1][0], sortedEqClasses)
+                fullOrderedCutSets.append(toAppend)
+                sortedEqClasses.remove(toAppend)
 
         return fullOrderedCutSets
 
     def getNextEqClass(self, currNode:str, eqClassList:list[list[str]]):
+        
+        # should probably pass the current eqClass instead of just a node
         
         for eqClass in eqClassList:
             if currNode in eqClass:
@@ -1649,6 +1634,7 @@ class GRAPH:
         if self.doesNgraphExist:
             raise Exception("Graph is invalid, cointains N-graph")
 
+        self.outRegex
         self.simplify()
 
         if len(self.nodes) == 1:
@@ -1664,55 +1650,13 @@ class GRAPH:
 
     def sequentialPartition(self):
 
-        sequentialGraphsNodes = []
-        cutSets = self.getCutSets()
-        noParents = self.getNodesNoParents()
-
-        currentSet = noParents
-        nextCutSet = self.getNextCutSet(currentSet[0])
-        descendantList = self.getNodeDescendantsList(currentSet)
-        if not nextCutSet and descendantList:
-            if currentSet in cutSets:
-                sequentialGraphsNodes.append(currentSet)
-                sequentialGraphsNodes.append(descendantList)
-            else:
-                sequentialGraphsNodes.append(currentSet + descendantList)
-        else:
-            currentSetInCutSets = False
-            for cutSet in cutSets:
-                if len(cutSet) == currentSet:
-                    if sorted(currentSet) == sorted(cutSet):
-                        currentSetInCutSets = True
-                        break
-            if currentSetInCutSets:
-                sequentialGraphsNodes.append(currentSet)
-                firstSetAdded = True
-            else:
-                firstSet = currentSet
-                firstSetAdded = False
-            while nextCutSet or descendantList:
-                if nextCutSet:
-                    middle = self.getNodesBetweenCutSets(currentSet, nextCutSet)
-                    if not firstSetAdded:
-                        middle = firstSet + middle
-                        firstSetAdded = True
-                    if middle:
-                        sequentialGraphsNodes.append(middle)
-                    sequentialGraphsNodes.append(nextCutSet)
-                    currentSet = nextCutSet.copy()
-                    descendantList = self.getNodeDescendantsList(nextCutSet)
-                    nextCutSet = self.getNextCutSet(nextCutSet[0])
-                else:
-                    if descendantList:
-                        sequentialGraphsNodes.append(descendantList)
-                    break
         self.sequentialGraphs:list[GRAPH] = []
-        for nodeSet in sequentialGraphsNodes:
+        cutSets = self.getCutSets()
+
+        for nodeSet in cutSets:
             self.sequentialGraphs.append(self.createSubGraph(nodeSet))
         if len(self.sequentialGraphs) == 1:
             self.sequentialGraphs = None
-        else:
-            pass
         return
     
 
