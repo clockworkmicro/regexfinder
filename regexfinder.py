@@ -289,7 +289,6 @@ class NODE:
     @property
     def random(self):
         """
-        CHECK
         Returns a random string that satifies a given node's regex.
         """
         if self.vector is None:
@@ -551,9 +550,9 @@ class GRAPH:
     def __init__(self, regex:str=None, wordList=None, nodes:dict[str, NODE]=None, edges:list[EDGE]=None, alpha=1):
         """
         CHECK
-        A Graph is a structure made of nodes and edges. Graphs are built by priority from regex,
-        followed by wordlist and nodes, a dictionary. If a graph is built from a regex, a non-simple node will be
-        made and added to the nodes dictionary. None however are required to instantiate a graph object.
+        A Graph is a data structure made of nodes and edges. Graphs are built by priority from either a regex,
+        a wordlist, or nodes[dictionary]. If a graph is built from a regex, a non-simple node will be
+        made and added to the nodes dictionary. Nodes are not required to instantiate a graph object.
         Edges are not required to be made with nodes.
         """
         self.regex = regex
@@ -562,8 +561,6 @@ class GRAPH:
 
         self.nodes:dict[str, NODE] = {}
         self.edges:list[EDGE] = []
-        # self.sequentialGraphs = []
-        # self.parallelGraphs = []
 
         if self.regex:
             try:
@@ -699,8 +696,8 @@ class GRAPH:
 
     def getSiblings(self, id_:str):
         """
-        CHECK
-        Returns neighboring nodes, siblings of a given node via ID.
+        Returns neighboring nodes, siblings of a given node via ID. Nodes are siblings if they share the same parent
+        (nodes with no parents are also siblings to eachother)
         """
         if not self.getParents(id_):
             return self.getNodesNoParents()
@@ -709,7 +706,7 @@ class GRAPH:
 
     def getNodesNoChildren(self):
         """
-        Returns node IDs for all nodes with no children (nodes that extend to any given node).
+        Returns node IDs for all nodes with no children.
         """
         return [x.id_ for x in self.nodes.values() if not self.getChildren(x.id_)]
 
@@ -730,7 +727,6 @@ class GRAPH:
 
     def getNotSimple(self):
         """
-        CHECK
         Returns all nodes that are not simple.
         """
         return [id_ for id_, node in self.nodes.items() if (not node.replaced and not node.simple)]
@@ -746,7 +742,6 @@ class GRAPH:
 
     def getNodeEqClasses(self):
         """
-        CHECK
         Returns a list of node IDs that have the same parents and children.
         """
         # two nodes are equivalent if they have the same parents and children
@@ -811,6 +806,19 @@ class GRAPH:
         return descendants
 
     def getGroupNodeAncestOrDesc(self, nodeList:list[str], relationship:str):
+        """Returns the unique ancestors or descendants of a given group of nodes. Nodes within the group are not considered
+        for ancestry.
+
+        Args:
+            nodeList (list[str]): The list of node Ids to be checked
+            relationship (str): Relationship is either "ancestors" or "descendants", case insensitive
+
+        Raises:
+            Exception: Exception is raised if relationship is not entered as "ancestors" or "descendants"
+
+        Returns:
+            list[str]: The list of ancestors or descendants, as node ids
+        """
         
         if relationship.lower() != 'ancestors' and relationship.lower() != 'descendants':
             raise Exception("Relationship is either 'ancestors' or 'descendants'")
@@ -837,9 +845,17 @@ class GRAPH:
     # A set of nodes is a CutSet if the set of nodes union with all its ancestors
     # and al of its descendants yields the entire graph
     def testCutSet(self, inList:list[str]):
-        """
+        """Tests a cutSet
 
-        """
+        Args:
+            inList (list[str]): The list of node ids to test
+
+        Raises:
+            Exception: Exception raise if a node included is not in self.nodes.keys()
+
+        Returns:
+            boolean: Returns true if the cutSet can yeild the entire graph
+        """        
         if not all([id_ in self.nodes.keys() for id_ in inList]):
             raise Exception('Node included in inSet that is not in self.nodes.keys().')
         else:
@@ -855,9 +871,11 @@ class GRAPH:
         return set(inList + allAncestors + allDescendants) == set(self.nodes.keys())
 
     def getCutSets(self):
-        """
-        CHECK
-        Between every eqClass will be a group of nodes that behave like an eqClass together
+        """A cutSet is a set of nodes that, when unioned with all its ancestors and descendants, yeild the entire graph.
+        All eqClasses are cutSets.
+
+        Returns:
+            list[list[str]]: Returns all eqClasses and noneqClass cutSets in order from top to bottom
         """
         eqClasses = self.getNodeEqClasses()
 
@@ -1406,8 +1424,7 @@ class GRAPH:
         Merges a group of nodes regardless of relationship status. Shoudl be used in conjunction with
         'getNode[Id]ListGraph'.
         """
-        self.simplify()
-        self.parallelPartition()
+        self.partition()
         changedNodes = []
         nodeList = []
         if self.parallelGraphs:
@@ -1625,12 +1642,46 @@ class GRAPH:
     def getNodeIdSequences(self, sequenceLength):
         return list(combinations(self.nodes.keys(), sequenceLength))
 
+    def getValidSubGraphsRecursive(self):
+        
+        if len(self.nodes) == 1:
+            return None
+        else:
+            parGraphSubGraphs = []
+            seqGraphSubGraphs = []
+            
+            if self.parallelGraphs:
+                parGraphLength = len(self.parallelGraphs)
+                parGraphSubGraphs.append(self)
+                if parGraphLength > 2:
+                    for i in range (2, parGraphLength):
+                        parGraphSubGraphs.extend(combinations(self.parallelGraphs, i))
+                belowGraphs = [g.getValidSubGraphsRecursive() for g in self.parallelGraphs]
+                for subGraph in belowGraphs:
+                    if subGraph:
+                        parGraphSubGraphs.extend(subGraph)
+                return parGraphSubGraphs
+            else:
+                seqGraphLength = len(self.sequentialGraphs)
+                seqGraphSubGraphs.append(self)
+                if seqGraphLength > 2:
+                    for i in range (2, seqGraphLength):
+                        for start in range((seqGraphLength-(i))+1):
+                            seqGraphSubGraphs.append(self.sequentialGraphs[start:start+(i)])
+                belowGraphs = [g.getValidSubGraphsRecursive() for g in self.sequentialGraphs]
+                for subGraph in belowGraphs:
+                    if subGraph:
+                        seqGraphSubGraphs.extend(subGraph)
+                return seqGraphSubGraphs
+
     def partition(self):
-        """
-        CHECK
-        Partitions the graph into simple nodes. Should be run after instantiating a graph via regex.
+        """Partitions the graph recursively into either sequential or parallel graphs. Should be run after instantiating a graph via regex.
         Potent method.
+
+        Raises:
+            Exception: Method will not run if an N-graph is present
         """
+                
         if self.doesNgraphExist:
             raise Exception("Graph is invalid, cointains N-graph")
 
@@ -1682,7 +1733,7 @@ class GRAPH:
 
     def reduce(self):
         """Reduces each node in the graph, i.e. abc -> a-c
-        """
+        """        
         for node in self.nodes.values():
             node.reduce()
 

@@ -843,6 +843,9 @@ class GraphTest(unittest.TestCase):
 
         with self.assertRaises(Exception):
             NODE(vector=[0], quantifier='3,')
+            NODE(vector=[0], quantifier='()')
+            NODE(vector=[0], quantifier='[]')
+            NODE(vector=[0], quantifier='{}')
             NODE(vector=[0], quantifier='-3')
             NODE(vector=[0], quantifier=-3)
             NODE(vector=[0], quantifier='three')
@@ -1049,7 +1052,18 @@ class GraphTest(unittest.TestCase):
         G = GRAPH(nodes=nodeDict, edges=edgeList)
         
         self.assertFalse(G.willNgraphAppear([n1.id_, n2.id_]))
+    
+    def testSimpleGetSubGraphs(self):
+        g1 = GRAPH(regex='a(b|c)d')
+        g1.partition()
+        validSubGraphsList1 = g1.getValidSubGraphsRecursive()
+        # Using debugger breakpoint to verify
+        print(validSubGraphsList1)
         
+        g2 = GRAPH(regex='([ab][ab])|(c[abd])|([abc]d)')
+        g2.partition()
+        validSubGraphsList2 = g2.getValidSubGraphsRecursive()
+        print(validSubGraphsList2)
 
 
 
