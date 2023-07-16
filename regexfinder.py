@@ -978,6 +978,20 @@ class GRAPH:
                 
         return toReturn
 
+    def getCutSetGroup(self, cutSetUpper:list[str], cutSetLower:list[str]):
+        
+        fullNodeGroup = []
+        fullEdgeGroup = []
+        fullNodeGroup.extend(cutSetUpper)
+        fullNodeGroup.extend(cutSetLower)
+        
+        intersection:set[str] = set(self.getGroupNodeAncestOrDesc(cutSetUpper, 'descendants')).intersection(set(self.getGroupNodeAncestOrDesc(cutSetLower, 'ancestors')))
+        if intersection:
+            fullNodeGroup.extend(intersection)
+            for edge in self.edges:
+                if edge.parent in fullNodeGroup or edge.child in fullNodeGroup:
+                    fullEdgeGroup.append(edge)
+
     def getNextCutSet(self, id_:str):
         """
         CHECK
@@ -1395,11 +1409,6 @@ class GRAPH:
 
             self.nodes[mergedNode.id_] = mergedNode
             self.edges.extend(newEdgeList)
-
-            if nodeRelationship.lower() == "sequential":
-                self.sequentialPartition()
-            else:
-                self.parallelPartition()
 
             self.partition()
         else:
