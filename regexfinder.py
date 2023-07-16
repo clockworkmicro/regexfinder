@@ -1698,6 +1698,8 @@ class GRAPH:
         self.simplify()
 
         if len(self.nodes) == 1:
+            self.sequentialGraphs = None
+            self.parallelGraphs = None
             return
 
         else:
