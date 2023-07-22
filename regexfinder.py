@@ -59,10 +59,15 @@ class NODE:
 
     @property
     def getQuantifier(self):
-        """
-        Returns the quantifier of the given node. Throws Exception if
+        """Returns the quantifier of the given node. Throws Exception if
         the node is not simple. If the quantifier is {1}, None is returned.
-        """
+
+        Raises:
+            Exception: Node is not simple
+
+        Returns:
+            str: Node quantifier
+        """        
         if self.simple:
             return self.classQuantList[0]['quantifier']
         else:
@@ -70,10 +75,15 @@ class NODE:
 
     @property
     def getQuantifierMin(self):
-        """
-        Returns the lower bound of the given's node quantifier. Throws Exception
+        """Returns the lower bound of the given's node quantifier. Throws Exception
         if the node is not simple. If the quantifier is {1}, None is returned.
-        """
+
+        Raises:
+            Exception: Node is not simple
+
+        Returns:
+            int: Quantifier min
+        """        
         if self.simple:
             quantifier = self.getQuantifier
             if quantifier == '?':
@@ -85,10 +95,15 @@ class NODE:
 
     @property
     def getQuantifierMax(self):
-        """
-        Returns the upper bound of the given's node quantifier. Throws Exception
+        """Returns the upper bound of the given's node quantifier. Throws Exception
         if the node is not simple. If the quantifier is {1}, None is returned.
-        """
+
+        Raises:
+            Exception: Node is not simple
+
+        Returns:
+            int: Quantifier max
+        """        
         if self.simple:
             quantifier = self.getQuantifier
             if quantifier == '?':
@@ -99,9 +114,14 @@ class NODE:
             raise Exception("Node is not simple")
 
     def mergeQuantifiers(self, nodeList:list):
-        """
-        Returns the new lower and upper bounds following the merging of the nodes' quantifier.
-        """
+        """Returns the new lower and upper bounds following the merging of the nodes' quantifier.
+
+        Args:
+            nodeList (list[str]): list of node ids
+
+        Returns:
+            tuple[int,int]: A tuple containing the new minimum and maximum quantifier
+        """        
         nodeList.append(self)
         lowestLow = min(lowestMin.getQuantifierMin for lowestMin in nodeList)
         highestHigh = max(highestMax.getQuantifierMax for highestMax in nodeList)
@@ -113,26 +133,24 @@ class NODE:
 
     @property
     def topOrExists(self):
-        """
-        CHECK:
-        Returns boolean if the node has an or statement seperating the whole regex.
-        """
+        """Returns boolean if the node has an or statement seperating the whole regex.
+
+        Returns:
+            bool: True or false on whether the top or exists
+        """        
         return topOrExists(self.regex)
 
     def removeOuterParentheses(self):
-        """
-        Removes unnecesary outer parenthesis if they exist in a node
+        """Removes unnecesary outer parenthesis if they exist in a node
         i.e. (a).
-        """
+        """        
         if hasOuterParentheses(self.regex):
             while self.regex[0] == '(' and self.regex[-1] == ')':
                 self.regex = self.regex[1:-1]
 
     def createVector(self):
-        """
-        Creates a vector for the given node.
-        """
-
+        """Creates a vector for the given node.
+        """        
         assert self.simple
         reClass = self.classQuantList[0]['class']
         vector = np.zeros(128, dtype=int)
@@ -191,10 +209,12 @@ class NODE:
         self.vector = VECTOR(vector, self.alpha)
 
     def reduce(self):
-        """
-        Reduces the regex of a given simple node if possible, i.e. 'abcde' -> 'a-e'.
+        """Reduces the regex of a given simple node if possible, i.e. 'abcde' -> 'a-e'.
         Same as VECTOR method.
-        """
+
+        Raises:
+            Exception: Node is not simple. A node cannot be reduced if it is not simple.
+        """        
         if not self.simple:
             raise Exception('Node is not simple. A node cannot be reduced if it is not simple.')
         elif not self.isPureSimple:
@@ -208,10 +228,15 @@ class NODE:
 
     @property
     def cardinality(self):
-        """
-        Returns the cardinality, the possible number of strings that satisfy its given regex, of the
+        """Returns the cardinality, the possible number of strings that satisfy its given regex, of the
         given node.
-        """
+
+        Raises:
+            Exception: Check class quantifier
+
+        Returns:
+            int: Cardinality, number of possible allowable string matches
+        """        
         if self.vector is None:
             self.createVector()
         valCount = sum(self.vector.v)
@@ -229,31 +254,39 @@ class NODE:
 
     @property
     def singleQuantifier(self):
-        """
-        Returns boolean if the quantifier is the same for its lower bound and upper bound i.e. {5}.
-        """
+        """Returns boolean if the quantifier is the same for its lower bound and upper bound i.e. {5}.
+
+        Returns:
+            bool: True or false on whether there is a single quantifier
+        """        
         return self.getQuantifierMin == self.getQuantifierMax
 
     @property
     def entropy(self):
-        """
-        Returns the entropy of a node, as defined by Information-Theoretic entropy.
-        """
+        """Returns the entropy of a node, as defined by Information-Theoretic entropy.
+
+        Returns:
+            float: Node entropy
+        """        
         return round(np.log2(self.cardinality), 4)
 
     @property
     def K(self):
-        """
-        Returns the length of given node's regex.
-        """
+        """Returns the length of given node's regex.
+
+        Returns:
+            int: Regex length
+        """        
         return len(self.regex)
 
     @property
     def phi(self):
-        """
-        Returns the phi of the node, being the entropy of the node added to the product
+        """Returns the phi of the node, being the entropy of the node added to the product
         of the alpha (weight parameter) and its K value.
-        """
+
+        Returns:
+            float: Node phi
+        """        
         return self.entropy + self.alpha * self.K
 
     def match(self, inString, boolean=False):
@@ -288,9 +321,14 @@ class NODE:
 
     @property
     def random(self):
-        """
-        Returns a random string that satifies a given node's regex.
-        """
+        """Returns a random string that satifies a given node's regex.
+
+        Raises:
+            Exception: if min != max
+
+        Returns:
+            str: Random string that matches the regex
+        """        
         if self.vector is None:
             self.createVector()
         quantifier = self.classQuantList[0]['quantifier']
@@ -307,35 +345,49 @@ class NODE:
 
 class EDGE:
     def __init__(self, parent:str, child:str, words=None):
-        """
-        CHECK WORDS
-        An edge is what connects 2 nodes, and exactly two nodes.
-        Its parent and child must not be the same.
-        """
-        if words is None:
-            words:list = []
-        if parent != child:
-            self.parent = parent
-            self.child = child
-        else:
-            raise Exception("Parent and child cannot be the same")
-        self.words = words
+            """CHECK WORDS
+            An edge is what connects 2 nodes, and exactly two nodes.
+            Its parent and child must not be the same.
+
+            Args:
+                parent (str): Parent node
+                child (str): Child node
+                words (TYPECHECK, optional): CHECK. Defaults to None.
+
+            Raises:
+                Exception: Parent and Child must not be the same
+            """        
+            if words is None:
+                words:list = []
+            if parent != child:
+                self.parent = parent
+                self.child = child
+            else:
+                raise Exception("Parent and child cannot be the same")
+            self.words = words
 
 
 class VECTOR:
     def __init__(self, vector:np.ndarray, alpha=None):
-        """
-        CHECK ALPHA
-        A vector is a matrix of 1's and 0's 128 big, each place
+        """        A vector is a matrix of 1's and 0's 128 big, each place
         representing an ASCII character (i.e. a space 33 in represents the '!' character.
-        """
+
+        Args:
+            vector (np.ndarray): An array of size 128, each position denotes an ASCII character
+            alpha ((float, int), optional): Weighted value. Defaults to None.
+        """        
         self.v = vector
         self.alpha = alpha
 
     @property
     def regex(self):
-        """
-        Returns the regex built from the given vector.
+        """Returns the regex built from the given vector.
+
+        Raises:
+            Exception: Vector has no nonzero values
+
+        Returns:
+            str: The regex of the given vector
         """
         if not self.consecutiveSublists:
             raise Exception('Vector has no nonzero values.')
@@ -364,13 +416,17 @@ class VECTOR:
 
     @property
     def getndArray(self):
+        """Returns Ndarray
+
+        Returns:
+            ndarray
+        """        
         return self.v
 
     def reduce(self):
-        """
-        Reduces the regex of a given vector if possible, i.e. 'abcde' -> 'a-e'.
+        """Reduces the regex of a given vector if possible, i.e. 'abcde' -> 'a-e'.
         Same as NODE method.
-        """
+        """        
         flatten = lambda x: [y for z in x for y in z]
 
         subLists = self.consecutiveSublists
@@ -398,26 +454,30 @@ class VECTOR:
 
     @property
     def minIndex(self):
-        """
-        CHECK
-        Returns the first (min) index in the given vector field.
+        """CHECKReturns the first (min) index in the given vector field.
+
+        Returns:
+            int: Index of minimum value in ndArray
         """
         return np.min(np.where(self.v))
 
     @property
     def maxIndex(self):
-        """
-        CHECK
-        Returns the last (max) index in the given vector field.
-        """
+        """CHECKReturns the last (max) index in the given vector field.
+
+        Returns:
+            int: Index of maximum value 
+        """        
         return np.max(np.where(self.v))
 
     @property
     def ent(self):
-        """
-        Returns the Informatic-Theory entropy of the given vector field, much like
+        """Returns the Informatic-Theory entropy of the given vector field, much like
         a regex.
-        """
+
+        Returns:
+            float: Entropy of the vector
+        """        
         return round(np.log2(np.sum(self.v)), 4)
 
     @property
@@ -429,25 +489,30 @@ class VECTOR:
 
     @property
     def K(self):
-        """
-        Returns the length of the regex built from the given vector.
-        """
+        """Returns the length of the regex built from the given vector.
+
+        Returns:
+            int: Length of regex
+        """        
         return len(self.regex)
 
     @property
     def phi(self):
-        """
-        Returns the phi of the vector, being the entropy of the vector added to the product
+        """Returns the phi of the vector, being the entropy of the vector added to the product
         of the alpha (weight parameter) and its K value.
-        """
+
+        Returns:
+            float: Vector Phi value
+        """        
         return self.ent + self.alpha * self.K
 
     @property
     def random(self):
-        """
-        CHECK
-        Returns a random string that satifies a given vector's regex.
-        """
+        """Returns a random string that satifies a given vector's regex.
+
+        Returns:
+            str: String that matches the regex
+        """        
         return chr(random.sample(list(np.where(self.v)[0]), 1)[0])
 
 
@@ -548,13 +613,22 @@ class WORDCOLLECTION:
 
 class GRAPH:
     def __init__(self, regex:str=None, wordList=None, nodes:dict[str, NODE]=None, edges:list[EDGE]=None, alpha=1):
-        """
-        CHECK
+        """        CHECK
         A Graph is a data structure made of nodes and edges. Graphs are built by priority from either a regex,
         a wordlist, or nodes[dictionary]. If a graph is built from a regex, a non-simple node will be
         made and added to the nodes dictionary. Nodes are not required to instantiate a graph object.
         Edges are not required to be made with nodes.
-        """
+
+        Args:
+            regex (str, optional): Build the graph from a regex. Will take priority if wordlist or nodes are provided. Defaults to None.
+            wordList (WORDCOLLECTION, optional): Build the graph from a wordcollectionCHECK. Takes priorty over nodes. Defaults to None.
+            nodes (dict[str, NODE], optional): Build the graph from given nodes (Edges are not included here). Defaults to None.
+            edges (list[EDGE], optional): Provide a list of edges to pair with nodes. Defaults to None.
+            alpha (int, optional): Weighted parameter. Defaults to 1.
+
+        Raises:
+            Exception: re.compile failed
+        """        
         self.regex = regex
         self.wordList = wordList
         self.alpha = alpha
@@ -586,16 +660,24 @@ class GRAPH:
             pass
 
     def deepCopy(self):
-        """
-        Returns a content-equal copy of the given graph, with a different
+        """Returns a content-equal copy of the given graph, with a different
         memory address
-        """
+
+        Returns:
+            GRAPH: Content-equal copy of this graph
+        """        
         return copy.deepcopy(self)
 
     def addNode(self, node:NODE, edges=None):
-        """
-        Adds a node into the given graph. Edges not required.
-        """
+        """Adds a node into the given graph. Edges not required.
+
+        Args:
+            node (NODE): Node to add
+            edges (_type_, optional): Edge to connect to the node. Defaults to None.
+
+        Raises:
+            Exception: Node key already exists
+        """        
         if edges is None:
             edges = []
         if node.id_ in self.nodes.keys():
@@ -610,10 +692,15 @@ class GRAPH:
             pass
 
     def removeNodeAndEdges(self, nodeList:list[str]):
-        """
-        Removes the given nodes, and its edges, from the given graph.
+        """Removes the given nodes, and its edges, from the given graph.
         Returns the affected nodes and edges adjecent to the group of nodes removed.
-        """
+
+        Args:
+            nodeList (list[str]): THe list of nodes to remove
+
+        Returns:
+            list[list[str], list[str]]: A list of nodes above and below the affected area
+        """        
         upperAffectedNodes = []
         lowerAffectedNodes = []
         edgesToRemove = []
@@ -641,10 +728,16 @@ class GRAPH:
         return [upperAffectedNodes, lowerAffectedNodes]
 
     def addEdge(self, edge:EDGE):
-        """
-        Adds the given edge to the graph ONLY if the parent and child nodes do not already
+        """Adds the given edge to the graph ONLY if the parent and child nodes do not already
         exist and if an edge for said parent and child nodes does not already exist.
-        """
+
+        Args:
+            edge (EDGE): Edge to add
+
+        Raises:
+            Exception: Edge alreay exists
+            Exception: Parent or child does not exits
+        """        
         for gEdge in self.edges:
             if edge == gEdge:
                 raise Exception("Edge already exists")
@@ -653,10 +746,19 @@ class GRAPH:
         self.edges.append(edge)
 
     def getEdge(self, parent:str, child:str):
-        """
-        Returns EDGE object for a given parent and child node, if it exists. Returns
+        """Returns EDGE object for a given parent and child node, if it exists. Returns
         false otherwise.
-        """
+
+        Args:
+            parent (str): Id of parent node
+            child (str): Id of child node
+
+        Raises:
+            Exception: More than one edge with same parent/child
+
+        Returns:
+            EDGE: The requested edge, or False if nonexistent
+        """        
         matches = [edge for edge in self.edges if (edge.parent == parent and edge.child == child)]
         if len(matches) > 1:
             raise Exception('More than one edge with same parent/child.')
@@ -666,9 +768,15 @@ class GRAPH:
             return False
 
     def removeEdge(self, parent:str, child:str):
-        """
-        Removes edge binding two nodes (parent and child) IF they exist in the given graph.
-        """
+        """Removes edge binding two nodes (parent and child) IF they exist in the given graph.
+
+        Args:
+            parent (str): Id of the parent node
+            child (str): Id of the child node
+
+        Raises:
+            Exception: Parent or child node does not exists
+        """        
         if parent not in self.nodes.keys() or child not in self.nodes.keys():
             raise Exception("Parent or Child node does not exist")
         toRemove = [edge for edge in self.edges if (edge.parent == parent and edge.child == child)]
@@ -677,73 +785,99 @@ class GRAPH:
             [self.edges.remove(edge) for edge in toRemove]
 
     def removeEdgesList(self, edgeList:list[EDGE]):
-        """
-        Removes all edges in the given graph.
-        """
+        """Removes all edges in the given graph.
+
+        Args:
+            edgeList (list[EDGE]): Edges to remove
+        """        
         [self.edges.remove(edge) for edge in edgeList]
 
     def getParents(self, id_:str):
-        """
-        Returns node ID(s) of the parent(s) of a given node via ID. Returns false if nonexistent.
-        """
+        """Returns node ID(s) of the parent(s) of a given node via ID. Returns false if nonexistent.
+
+        Args:
+            id_ (str): Id of the node in question
+
+        Returns:
+            list[str]: List of nodes that are parents to the nodes in question
+        """        
         return [x.parent for x in self.edges if x.child == id_]
 
     def getChildren(self, id_:str):
-        """
-        Returns node ID(s) of the child(ren) of a given node via ID. Returns false if nonexistent.
-        """
+        """Returns node ID(s) of the child(ren) of a given node via ID. Returns false if nonexistent.
+
+        Args:
+            id_ (str): Id of the node in question
+
+        Returns:
+            list[str]: Children of the node in question
+        """        
         return [x.child for x in self.edges if x.parent == id_]
 
     def getSiblings(self, id_:str):
-        """
-        Returns neighboring nodes, siblings of a given node via ID. Nodes are siblings if they share the same parent
+        """Returns neighboring nodes, siblings of a given node via ID. Nodes are siblings if they share the same parent
         (nodes with no parents are also siblings to eachother)
-        """
+
+        Args:
+            id_ (str): Id of the node in question
+
+        Returns:
+            list[str]: A list of the siblings of the node in question
+        """         
         if not self.getParents(id_):
             return self.getNodesNoParents()
         else:
             return sorted(list(set(flatten([self.getChildren(parent) for parent in self.getParents(id_)]))))
 
     def getNodesNoChildren(self):
-        """
-        Returns node IDs for all nodes with no children.
-        """
+        """Returns node IDs for all nodes with no children.
+
+        Returns:
+            list[str]: A list of node ids that have no children
+        """        
         return [x.id_ for x in self.nodes.values() if not self.getChildren(x.id_)]
 
     def getNodesNoParents(self):
-        """
-        Returns node IDs for all nodes with no parents (nodes that do not extend from any node).
-        """
+        """Returns node IDs for all nodes with no parents (nodes that do not extend from any node).
+
+        Returns:
+            list[str]: A list of node ids that have no parents
+        """        
         return [x.id_ for x in self.nodes.values() if not self.getParents(x.id_)]
 
     def getLonelyNodes(self):
-        """
-        Returns all nodes with no edges.
-        """
+        """Returns all nodes with no edges.
+
+        Returns:
+            list[str]: A list of all nodes(ids) with no edges
+        """        
         setOfNoParents = set(self.getNodesNoParents())
         setOfNoChildren = set(self.getNodesNoChildren())
 
         return list(setOfNoChildren.intersection(setOfNoParents))
 
     def getNotSimple(self):
-        """
-        Returns all nodes that are not simple.
-        """
+        """Returns all nodes that are not simple.
+
+        Returns:
+            list[str]: A list of all nodes(ids) that are not simple
+        """        
         return [id_ for id_, node in self.nodes.items() if (not node.replaced and not node.simple)]
 
     def simplify(self):
-        """
-        CHECK
+        """CHECK
         Simplifies all existing nodes.
-        """
+        """        
         while self.getNotSimple():
             self.process(self.getNotSimple()[0])
         self.nodes = dict([(name, node) for name, node in self.nodes.items() if node.simple])
 
     def getNodeEqClasses(self):
-        """
-        Returns a list of node IDs that have the same parents and children.
-        """
+        """Returns a list of node IDs that have the same parents and children.
+
+        Returns:
+            list[str]: A list of all nodes that have the same parents and children
+        """        
         # two nodes are equivalent if they have the same parents and children
         tempDict:dict[tuple[str, str], str] = {}
         for id_ in self.nodes.keys():
@@ -756,9 +890,14 @@ class GRAPH:
         return list(tempDict.values())
 
     def getNodeAncestorsList(self, inList:list[str]):
-        """
-        Returns a list of node IDs of ancestors, the parents of all of each node's parents
-        """
+        """Returns a list of node IDs of ancestors, the parents of all of each node's parents
+
+        Args:
+            inList (list[str]): A list of node ids in question
+
+        Returns:
+            list[str]: A list of all the nodes' ancestors
+        """        
         toReturn = []
         for id_ in inList:
             if self.getNodeAncestors(id_) not in toReturn:
@@ -766,9 +905,17 @@ class GRAPH:
         return toReturn
 
     def getNodeDescendantsList(self, inList:list[str]):
-        """
-        Returns a list of node IDs of descendants, the children of all of each node's children
-        """
+        """Returns a list of node IDs of descendants, the children of all of each node's children
+
+        Args:
+            inList (list[str]): A list of the node ids in question
+
+        Raises:
+            Exception: Value inList must be a list
+
+        Returns:
+            list[str]: A list of all the nodes' descendants
+        """        
         if not isinstance(inList, list):
             raise Exception(('value inList must be a list'))
         toReturn = []
@@ -779,9 +926,14 @@ class GRAPH:
         return toReturn
 
     def getNodeAncestors(self, id_:str):
-        """
-        Returns a list of node IDs of ancestors, the parents of a given node's parents
-        """
+        """Returns a list of node IDs of ancestors, the parents of a given node's parents
+
+        Args:
+            id_ (str): Id of the node in question
+
+        Returns:
+            list[str]: A list of the node's ancestors
+        """        
         ancestors:list[str] = []
         parents = self.getParents(id_)
         while parents:
@@ -791,9 +943,14 @@ class GRAPH:
         return sorted(list(set(ancestors)))
 
     def getNodeDescendants(self, id_:str):
-        """
-        Returns a list of node IDs of descendants, the children of a given node's children
-        """
+        """Returns a list of node IDs of descendants, the children of a given node's children
+
+        Args:
+            id_ (str): Id of the node in question
+
+        Returns:
+            list[str]: A list of the noode's descendants
+        """        
         descendants = self.getChildren(id_)
         nextGen = descendants
 
@@ -872,7 +1029,6 @@ class GRAPH:
 
     def getCutSets(self):
         """A cutSet is a set of nodes that, when unioned with all its ancestors and descendants, yeild the entire graph.
-        All eqClasses are cutSets.
 
         Returns:
             list[list[str]]: Returns all eqClasses and noneqClass cutSets in order from top to bottom
@@ -960,6 +1116,15 @@ class GRAPH:
         return fullOrderedCutSets
 
     def getNextEqClass(self, currNode:str, eqClassList:list[list[str]]):
+        """Gets the next sequential eqClas
+
+        Args:
+            currNode (str): A node in the current eqClass you are in *change to class itself
+            eqClassList (list[list[str]]): The entire list of eqClasses
+
+        Returns:
+            list[str]: The next eqClass
+        """        
         
         # should probably pass the current eqClass instead of just a node
         
@@ -979,6 +1144,12 @@ class GRAPH:
         return toReturn
 
     def getCutSetGroup(self, cutSetUpper:list[str], cutSetLower:list[str]):
+        """NEEDSWORK gets the next sequential cutSet
+
+        Args:
+            cutSetUpper (list[str]): The cutSet above
+            cutSetLower (list[str]): The cutSet below
+        """        
         
         fullNodeGroup = []
         fullEdgeGroup = []
@@ -993,11 +1164,19 @@ class GRAPH:
                     fullEdgeGroup.append(edge)
 
     def getNextCutSet(self, id_:str):
-        """
-        CHECK
-        """
+        """NEEDSWORK Gets the next subsequent cutSet
+
+        Args:
+            id_ (str): Id of a node in the current cutSet
+
+        Raises:
+            Exception: Node id is not valid
+
+        Returns:
+            list[str]: A list of the node ids in the next cutSet
+        """        
         if not id_ in self.nodes.keys():
-            raise Exception('Node id not not valid.')
+            raise Exception('Node id not valid.')
         children = self.getChildren(id_)
         while not (children in self.getCutSets()) and children:
             newchildren = self.getChildren(children[0])
@@ -1005,9 +1184,20 @@ class GRAPH:
         return children
 
     def getNodesBetweenCutSets(self, cutSetUpper:list, cutSetLower:list):
-        """
-        CHECK
-        """
+        """Gets all nodes between cutSets
+
+        Args:
+            cutSetUpper (list): The upper cutSet
+            cutSetLower (list): The lower cutSet
+
+        Raises:
+            Exception: cutSetUpper is not a cutSet and is not noParents
+            Exception: cutSetLower is not a cutset
+            Exception: cutSetUpper is not ancestor of cutSetLower
+
+        Returns:
+            list[str]: A list of node ids between the cutSets
+        """        
         if cutSetUpper not in self.getCutSets() and cutSetUpper != self.getNodesNoParents():
             raise Exception('cutSetUpper is not a cutSet and is not noParents')
 
@@ -1073,10 +1263,12 @@ class GRAPH:
         self.columnState += 1
 
     def createVisual(self, labels=False):
-        """
-        Creates and displays a PDF file of the structure of the graph, regardless of simplification
+        """Creates and displays a PDF file of the structure of the graph, regardless of simplification
         level.
-        """
+
+        Args:
+            labels (bool, optional): Displays labels for each node. Used for merging. Defaults to False.
+        """        
 
         dot = Digraph()
         # dot.node('',shape='point')
@@ -1205,10 +1397,15 @@ class GRAPH:
         return True
 
     def checkGenerationalRelationship(self, nodeList:list[str]):
-        """
-        Returns True if a given list of node IDs is able to be merged
+        """Returns True if a given list of node IDs is able to be merged
         i.e. a->b->c->d, 'b' and 'd' cannot be merged but 'b' 'c' d' can.
-        """
+
+        Args:
+            nodeList (list[str]): The list of node ids in question
+
+        Returns:
+            bool: True or False on whether the nodes can be merged
+        """        
         if self.getLonelyNodes():
             # If we are trying to merge any lonely node
             if any(node in self.getLonelyNodes() for node in nodeList):
@@ -1265,6 +1462,14 @@ class GRAPH:
             return True
 
     def willNgraphAppear(self, nodeList:list[str]):
+        """Check to see if merging the group of nodes will result in an n-graph
+
+        Args:
+            nodeList (list[str]): The list of node ids in question
+
+        Returns:
+            bool: True or False depending on whether the n-graph will appear
+        """        
 
         tempList = nodeList.copy()
         for currNode in tempList: # Removing all nodes that are directly related to each other
@@ -1297,13 +1502,30 @@ class GRAPH:
         return False
 
     def isMergeNodesValid(self, nodeList:list[str]):
+        """Checks whether merging a group of nodes is allowed
+
+        Args:
+            nodeList (list[str]): The list of node ids to be merged
+
+        Returns:
+            bool: True or False on whether the merge is allowed
+        """        
         return (self.checkGenerationalRelationship(nodeList) and not self.willNgraphAppear(nodeList))
 
     def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
-        """
-        Creates and retuns a NODE object made from a list of node IDs being merged.
+        """Creates and retuns a NODE object made from a list of node IDs being merged.
         Returns false if the merged node was not able to be made
-        """
+
+        Args:
+            nodeList (list[str]): The list of node ids to merge
+            nodeRelationship (str): Whether the nodes are sequential or parallel *precondition needed
+
+        Raises:
+            Exception: Node list include invalid node
+
+        Returns:
+            NODe, False: Returns the new node, False if can't be merged
+        """        
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
 
@@ -1322,10 +1544,15 @@ class GRAPH:
             return False
 
     def createMergedParallelNodesQuantifier(self, nodeList:list[str]):
-        """
-        Returns a new quantifier (string) made from the merging of ALL nodes that are parallel
+        """Returns a new quantifier (string) made from the merging of ALL nodes that are parallel
         to eachother. None is returned if no quantifier ({1}) is found.
-        """
+
+        Args:
+            nodeList (list[str]): The list of node ids to be merged
+
+        Returns:
+            str | None: Returns the new quantifier (none if there are no quantifiers present)
+        """        
         if any(self.nodes[nodeId].getQuantifier for nodeId in nodeList):
             lowestLow = min(
                 self.nodes[nodeId].getQuantifierMin if self.nodes[nodeId].getQuantifierMin is not None else 1 for nodeId in
@@ -1341,10 +1568,15 @@ class GRAPH:
             return None
 
     def createMergedSequentialNodesQuantifier(self, nodeList:list[str]):
-        """
-        Returns a new quantifier (string) made from the merging of ALL nodes that are sequential
+        """Returns a new quantifier (string) made from the merging of ALL nodes that are sequential
         to eachother. If no quantifier is found ({1}), the length of the list of node IDs is returned.
-        """
+
+        Args:
+            nodeList (list[str]): The list of nodes to be merged
+
+        Returns:
+            str | int: The new quantifier (int if there are no quantifiers present, they get added up)
+        """        
         if any(self.nodes[nodeId].getQuantifier for nodeId in nodeList):
             lowestLows = [self.nodes[nodeId].getQuantifierMin if self.nodes[nodeId].getQuantifierMin
                           else 1 for nodeId in nodeList]
@@ -1362,17 +1594,25 @@ class GRAPH:
             return len(nodeList)
 
     def mergeRelatedNodes(self, nodeList:list[str], nodeRelationship:str):
-        """
-        Given a list of node IDs and a shared relationship between them (parallel or sequential), a new node is created
+        """Given a list of node IDs and a shared relationship between them (parallel or sequential), a new node is created
         from merging the given nodes as well as placing itself where the group of nodes was before,
         with new edges created to bind it with affected adjacent edges.
-        """
+
+        Args:
+            nodeList (list[str]): The list of node ids to be merged
+            nodeRelationship (str): Whether the nodes are sequential or parallely related
+
+        Raises:
+            Exception: Node list includes invalid node
+            Exception: Node relationship is not either 'sequential' or 'parallel'
+            Exception: Node relationship is not a string
+        """        
         if not set(nodeList).issubset(set(self.nodes.keys())):
             raise Exception('Node list includes invalid node.')
 
         if isinstance(nodeRelationship, str):
             if not ((nodeRelationship.lower() == "sequential") or (nodeRelationship.lower() == "parallel")):
-                raise Exception("Node relationship is either 'sequential' or 'parallel'")
+                raise Exception("Node relationship is not either 'sequential' or 'parallel'")
         else:
             raise Exception("Node relationship should be a string 'sequential' or 'parallel'")
 
@@ -1381,18 +1621,27 @@ class GRAPH:
         self.graphStichIn(nodeList, nodeRelationship, mergedNode)
 
     def graphStichIn(self, nodeList:list[str], nodeRelationship:str, mergedNode:NODE):
-        """
-        Given a list of node IDs and a shared relationship between them (parallel or sequential) and a new node,
+        """Given a list of node IDs and a shared relationship between them (parallel or sequential) and a new node,
         the new node will replace the position of where all the nodes used to occupy. If the mergedNode is not
         an instance of NODE an exception is thrown.
-        """
+
+        Args:
+            nodeList (list[str]): The list of node ids to be merged
+            nodeRelationship (str): The relationship of the nodes
+            mergedNode (NODE): The merged node from the given node ids
+
+        Raises:
+            Exception: Node relationship is not either 'sequential' or 'parallel'
+            Exception: Node relationship should be a string 'sequential' or 'parallel'
+            Exception: The mergedNode is not a node, check merging
+        """        
 
         # nodeList is a list of ids,
         # while mergedNodes is an actual node
 
         if isinstance(nodeRelationship, str):
             if not ((nodeRelationship.lower() == "sequential") or (nodeRelationship.lower() == "parallel")):
-                raise Exception("Node relationship is either 'sequential' or 'parallel'")
+                raise Exception("Node relationship is not either 'sequential' or 'parallel'")
         else:
             raise Exception("Node relationship should be a string 'sequential' or 'parallel'")
 
@@ -1415,9 +1664,14 @@ class GRAPH:
             raise Exception("The mergedNode is not a node, check merging")
 
     def createSubGraphNodes(self, nodeList:list[NODE]):
-        """
-        Returns a GRAPH object with nodes and edges made up of all NODE objects given.
-        """
+        """Returns a GRAPH object with nodes and edges made up of all NODE objects given.
+
+        Args:
+            nodeList (list[NODE]): The list of nodes to be used to create the subGraph
+
+        Returns:
+            GRAPH: A new graph built from the given nodes, and edges provided from this graph
+        """        
 
         necessaryEdges = [edge for edge in self.edges if
                           (self.nodes[edge.parent] in nodeList and self.nodes[edge.child] in nodeList)]
@@ -1429,10 +1683,12 @@ class GRAPH:
         return nodeListGraph
 
     def mergeToNodeRecursive(self):
-        """
-        Merges a group of nodes regardless of relationship status. Shoudl be used in conjunction with
+        """Merges a group of nodes regardless of relationship status. Shoudl be used in conjunction with
         'getNode[Id]ListGraph'.
-        """
+
+        Returns:
+            list[str]: (Recursive return) All changed nodes from this change and downstream
+        """        
         self.partition()
         changedNodes = []
         nodeList = []
@@ -1482,11 +1738,13 @@ class GRAPH:
             return changedNodes
 
     def mergeNodeIds(self, nodeList:list[str]):
-        """
-        Given a list of node IDs, Creates a new node merged from each node, and is
+        """Given a list of node IDs, Creates a new node merged from each node, and is
         'stiched' into the graph to preserve continuity. NodeList should contain node IDs
         that are able to be merged
-        """
+
+        Args:
+            nodeList (list[str]): A list of node ids to be merged
+        """        
         if self.isMergeNodesValid(nodeList):
             if len(nodeList) > 1:
                 # A graph made up of only the nodes
@@ -1501,6 +1759,15 @@ class GRAPH:
                     self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
 
     def multiMergeNodeIds(self, listOfNodeLists:list[list[str]]):
+        """Same as mergeNodeIds, but simultaneous merges
+
+        Args:
+            listOfNodeLists (list[list[str]]): A list of the list of nodes to be merged
+
+        Raises:
+            Exception: Empty list provided
+            Exception: Nodes in set of merges must contain unique nodes
+        """        
         if len(listOfNodeLists) > 1:
             startPos = 0
             while startPos != len(listOfNodeLists):
@@ -1517,11 +1784,13 @@ class GRAPH:
             self.mergeNodeIds(nodeList)
 
     def mergeNodes(self, nodeList:list[NODE]):
-        """
-        Given a list of nodes , Creates a new node merged from each node, and is
+        """Given a list of nodes , Creates a new node merged from each node, and is
         'stiched' into the graph to preserve continuity. NodeList should contain nodes
         that are able to be merged
-        """
+
+        Args:
+            nodeList (list[NODE]): THe list of node objects to be merged
+        """        
         toCheck = [x.id_ for x in nodeList]
         if self.isMergeNodesValid(toCheck):
             if len(nodeList) > 1:
@@ -1541,13 +1810,19 @@ class GRAPH:
         self.mergeNodeIds(list(self.nodes.keys()))
 
     def createSubGraph(self, nodeList:list[str]):
-        """
-        Returns a GRAPH object with nodes and edges made up of all node IDs given.
-        """
+        """Returns a GRAPH object with nodes and edges made up of all node IDs given.
+
+        Args:
+            nodeList (list[str]): The list of node objects to be used to create the new graph
+
+        Returns:
+            GRAPH: A new graph built from the provided nodes, and edges provided from this graph
+        """        
         subNodes = {}
 
         for node in nodeList:
             subNodes[node] = self.nodes[node]
+        # Below gets all of its edges too
         subEdges = [edge for edge in self.edges if (edge.parent in nodeList and edge.child in nodeList)]
 
         subG = GRAPH(nodes=subNodes, edges=subEdges, alpha=self.alpha)
@@ -1694,12 +1969,10 @@ class GRAPH:
         if self.doesNgraphExist:
             raise Exception("Graph is invalid, cointains N-graph")
 
-        self.outRegex
         self.simplify()
-
+        
         if len(self.nodes) == 1:
-            self.sequentialGraphs = None
-            self.parallelGraphs = None
+            self.sequentialGraphs = self.parallelGraphs = None
             return
 
         else:
@@ -1711,6 +1984,8 @@ class GRAPH:
                 [g.partition() for g in self.sequentialGraphs]
 
     def sequentialPartition(self):
+        """Partitions the graph in a sequential manner if sequentialGraphs are present
+        """        
 
         self.sequentialGraphs:list[GRAPH] = []
         cutSets = self.getCutSets()
@@ -1723,9 +1998,8 @@ class GRAPH:
     
 
     def parallelPartition(self):
-        """
-        CHECK
-        """
+        """Partitions the graph in a parallel manner if parallelGraphs are present
+        """        
         sharedDescendantSets = self.getSharedDecendantSets()
 
         parallel = []
@@ -1749,6 +2023,11 @@ class GRAPH:
             node.reduce()
 
     def getStartNodeId(self):
+        """Returns the node id of the node that starts the graph
+
+        Returns:
+            list[str]: A list of all nodes that start the graph
+        """        
         if self.multiGraphsExist:
             toReturn = []
             for graph in self.parallelGraphs:
@@ -1761,11 +2040,21 @@ class GRAPH:
 
     @property
     def multiGraphsExist(self):
+        """Returns whether multiple parallel graphs exists, UNNECESARY METHOD
+
+        Returns:
+            bool: Whether there's multiple graphs
+        """        
         self.parallelPartition()
         return self.parallelGraphs != None
 
     @property
     def doesNgraphExist(self):
+        """Checks whether an N-graph is already present in a graph
+
+        Returns:
+            bool: True or False on whether an n-graphs exists
+        """        
         for child in self.nodes.keys():
             parentsList = self.getParents(child)
             if len(parentsList) > 1:
@@ -1781,12 +2070,21 @@ class GRAPH:
                                 return True
         return False
 
-    def checkAlternatePath(self, currNode, nodeInQuestion):
-        if not self.getChildren(currNode):
+    def checkAlternatePath(self, parentNode, nodeInQuestion):
+        """Checks for any alternate path besides the direct edge that connects two nodes
+
+        Args:
+            parentNode (str): Node id of the parent node
+            nodeInQuestion (str): Node id of the node in question
+
+        Returns:
+            bool: True or false depending on whether an alternate path exists
+        """        
+        if not self.getChildren(parentNode):
             return False
         else:
             results = []
-            for child in self.getChildren(currNode):
+            for child in self.getChildren(parentNode):
                 if child == nodeInQuestion:
                     return True
                 else:
@@ -1795,9 +2093,11 @@ class GRAPH:
 
     @property
     def cardinality(self):
-        """
-        Returns the cardinality, how many strings are able to satisfy the regex of the graph.
-        """
+        """Returns the cardinality, how many strings are able to satisfy the regex of the graph.
+
+        Returns:
+            int: The cardinality of the graph
+        """        
         if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
             return sum([g.cardinality for g in self.parallelGraphs])
         elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs:
@@ -1808,6 +2108,11 @@ class GRAPH:
 
     @property
     def log2Cardinality(self):
+        """Helper method for calculating the base 2 logarithm for any size cardinality
+
+        Returns:
+            float: base2 logarithm of the cardinality
+        """        
         if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
             return np.log2(sum([g.cardinality for g in self.parallelGraphs]))
         elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs:
@@ -1818,23 +2123,29 @@ class GRAPH:
 
     @property
     def entropy(self):
-        """
-        Returns the Information-Theoretic entropy of the given graph's regex.
-        """
+        """Returns the Information-Theoretic entropy of the given graph's regex.
+
+        Returns:
+            float: The entropy of the graph's regex
+        """        
         return round(np.log2(self.cardinality), 4)
 
     @property
     def K(self):
-        """
-        Returns the length of the given graph's regex.
-        """
+        """Returns the length of the given graph's regex.
+
+        Returns:
+            int: The graph's regex length
+        """        
         return len(self.outRegex)
 
     def outRegexRecursive(self):
-        """
-        Returns the joined regexes of each individual subNode,
+        """Returns the joined regexes of each individual subNode,
         based on parallel or sequential relationship.
-        """
+
+        Returns:
+            str: (Recursive return) Returns the outRegex
+        """        
         if hasattr(self, 'parallelGraphs') and self.parallelGraphs:
             # if hasattr(self, 'parallelGraphs') and self.parallelGraphs is not None:
             toReturn = "(" + "|".join([g.outRegexRecursive() for g in self.parallelGraphs]) + ")"
@@ -1848,9 +2159,11 @@ class GRAPH:
 
     @property
     def outRegex(self):
-        """
-        Returns the regex of the given graph.
-        """
+        """Returns the regex of the given graph based on node relationships
+
+        Returns:
+            str: The graph's regex
+        """        
         toReturn = self.outRegexRecursive()
         if hasOuterParentheses(toReturn):
             return toReturn[1:-1]
@@ -1859,17 +2172,21 @@ class GRAPH:
 
     @property
     def phi(self):
-        """
-        Returns the phi of the graph, being the entropy of the graph added to the product
+        """Returns the phi of the graph, being the entropy of the graph added to the product
         of the alpha (weight parameter) and its K value.
-        """
+
+        Returns:
+            float: The graph's phi value
+        """        
         return round(self.log2Cardinality, 4) + self.alpha * self.K
 
     @property
     def random(self):
-        """
-        CHECK
-        """
+        """Returns a random string that satisfies its regex
+
+        Returns:
+            str: A string that satisfies the regex
+        """        
         if self.parallelGraphs:
             weights = [subG.cardinality for subG in self.parallelGraphs]
             subG = random.choices(self.parallelGraphs, weights)[0]
