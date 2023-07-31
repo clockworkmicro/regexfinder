@@ -179,14 +179,14 @@ class GraphTest(unittest.TestCase):
         g2 = g1.sequentialGraphs[2]
         self.assertEqual(2, len(g2.parallelGraphs))
         g3 = g2.parallelGraphs[0]
-        if not hasattr(g3, 'sequentialGraphs'):
+        if (not hasattr(g3, 'sequentialGraphs')) or g3.sequentialGraphs is None:
             g3 = g2.parallelGraphs[1]
         self.assertEqual(4, len(g3.sequentialGraphs))
         g4 = g3.sequentialGraphs[1]
         self.assertEqual(3, len(g4.parallelGraphs))
         x = 0
         g5 = g4.parallelGraphs[x]
-        while not hasattr(g5, 'sequentialGraphs'):
+        while (not hasattr(g5, 'sequentialGraphs')) or g5.sequentialGraphs is None:
             x += 1
             g5 = g4.parallelGraphs[x]
         g5.partition()
@@ -395,14 +395,14 @@ class GraphTest(unittest.TestCase):
 
         # j|c(...)
         g3 = g2.parallelGraphs[0]
-        if not (hasattr(g3, 'sequentialGraphs')):
+        if (not (hasattr(g3, 'sequentialGraphs'))) or g3.sequentialGraphs is None:
             g3 = g2.parallelGraphs[1]
         self.assertEqual(4, len(g3.sequentialGraphs))
         g4 = g3.sequentialGraphs[1]
         self.assertEqual(3, len(g4.parallelGraphs))
         x = 0
         g5 = g4.parallelGraphs[x]
-        while not hasattr(g5, 'sequentialGraphs'):
+        while (not hasattr(g5, 'sequentialGraphs')) or g5.sequentialGraphs is None:
             x += 1
             g5 = g4.parallelGraphs[x]
         self.assertEqual(2, len(g5.sequentialGraphs))
@@ -411,7 +411,7 @@ class GraphTest(unittest.TestCase):
         g6 = g1.sequentialGraphs[4]
         self.assertEqual(2, len(g6.parallelGraphs))
         g7 = g6.parallelGraphs[0]
-        if not hasattr(g7, 'sequentialGraphs'):
+        if (not hasattr(g7, 'sequentialGraphs')) or g7.sequentialGraphs is None:
             g7 = g6.parallelGraphs[1]
         self.assertEqual(2, len(g7.sequentialGraphs))
 
@@ -507,7 +507,7 @@ class GraphTest(unittest.TestCase):
         G1 = G.sequentialGraphs[0]
         G1.partition()
         G2 = G1.parallelGraphs[0]
-        if not (hasattr(G2, 'sequentialGraphs')):
+        if (not (hasattr(G2, 'sequentialGraphs'))) or G2.sequentialGraphs is None:
             G2 = G1.parallelGraphs[1]
         G2.partition()
 
@@ -888,14 +888,14 @@ class GraphTest(unittest.TestCase):
         nDict = {n1.id_:n1}
         g1 = GRAPH(nodes=nDict)
         g1.partition()
-        self.assertEqual(n1.id_, g1.getStartNodeId())
+        self.assertEqual([n1.id_], g1.getNodesNoParents())
         
         n1 = NODE(regex='a')
         n2 = NODE(regex='b')
         nDict = {n1.id_:n1, n2.id_:n2}
         g1 = GRAPH(nodes=nDict)
         g1.partition()
-        self.assertEqual([n1.id_, n2.id_], g1.getStartNodeId())
+        self.assertEqual([n1.id_, n2.id_], g1.getNodesNoParents())
         
         n1 = NODE(regex='a')
         n2 = NODE(regex='b')
@@ -903,7 +903,7 @@ class GraphTest(unittest.TestCase):
         e = [EDGE(n1.id_, n2.id_)]
         g1 = GRAPH(nodes=nDict, edges=e)
         g1.partition()
-        self.assertEqual(n1.id_, g1.getStartNodeId())
+        self.assertEqual([n1.id_], g1.getNodesNoParents())
         
         n1 = NODE('a')
         n2 = NODE('b')
@@ -926,7 +926,7 @@ class GraphTest(unittest.TestCase):
         nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
         G = GRAPH(nodes=nodeDict, edges=edgeList)
         G.partition()
-        self.assertEqual(n1.id_, G.getStartNodeId())
+        self.assertEqual([n1.id_], G.getNodesNoParents())
         
     def testLog2Cardinality(self):
         g1 = GRAPH(regex='a(b(c(d|e{4}f{5}|g)h{2}i|j)k)(lm|n)')
@@ -1056,13 +1056,13 @@ class GraphTest(unittest.TestCase):
     def testSimpleGetSubGraphs(self):
         g1 = GRAPH(regex='a(b|c)d')
         g1.partition()
-        validSubGraphsList1 = g1.getValidSubGraphsRecursive()
+        validSubGraphsList1 = g1.getValidSubGraphs()
         # Using debugger breakpoint to verify
         print(validSubGraphsList1)
         
         g2 = GRAPH(regex='([ab][ab])|(c[abd])|([abc]d)')
         g2.partition()
-        validSubGraphsList2 = g2.getValidSubGraphsRecursive()
+        validSubGraphsList2 = g2.getValidSubGraphs()
         print(validSubGraphsList2)
 
 

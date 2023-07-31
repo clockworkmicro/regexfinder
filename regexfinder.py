@@ -720,10 +720,7 @@ class GRAPH:
         [self.edges.remove(x) for x in edgesToRemove]
 
         for node in nodeList:
-            try:
-                del self.nodes[node]
-            except KeyError:
-                continue
+            del self.nodes[node]
 
         return [upperAffectedNodes, lowerAffectedNodes]
 
@@ -1287,6 +1284,52 @@ class GRAPH:
 
         dot.render(view=True)
 
+    def createMultiGraphVisual(self, graphList:list=None, graphRegexList:list[str]=None, includeThisGraph:bool=False, labels=False):
+        """Creates a visual of multiple graphs at once
+
+        Args:
+            graphList (list[GRAPH], optional): A list of GRAPH objects to visualize. Prioritized. Defaults to None.
+            graphRegexList (list[str], optional): A list of GRAPH regexes to visualize. Defaults to None.
+            includeThisGraph (bool, optional): Whether this graph should be included in the visualization. Defaults to True.
+            labels (bool, optional): Whether labels for nodes are on. Defaults to False.
+
+        Raises:
+            Exception: Either a graphList or a graphRegexList must be provided
+        """        
+        if not graphList and not graphRegexList:
+            raise Exception("A list of GRAPH object or GRAPH regexes must be passed in")
+        
+
+        if includeThisGraph:
+            combinedRegex = self.outRegex
+            firstOr = 1
+        else:
+            combinedRegex = ""
+            firstOr = 0
+        
+        
+        if graphList:
+            for graph in graphList:
+                if firstOr:
+                    combinedRegex += "|"
+                else:
+                    firstOr += 1
+                    
+                combinedRegex += graph.outRegex
+        else:
+            for graph in graphRegexList:
+                if firstOr:
+                    combinedRegex += "|"
+                else:
+                    firstOr += 1
+                    
+                combinedRegex += graph
+            
+            
+        toVisualize = GRAPH(regex=combinedRegex)
+        toVisualize.partition()
+        toVisualize.createVisual(labels=labels)
+
     def process(self, id_:str):
         """
         CHECK
@@ -1618,9 +1661,9 @@ class GRAPH:
 
         mergedNode = self.createMergedNodes(nodeList, nodeRelationship)
 
-        self.graphStichIn(nodeList, nodeRelationship, mergedNode)
+        self.graphStichIn(nodeList, mergedNode)
 
-    def graphStichIn(self, nodeList:list[str], nodeRelationship:str, mergedNode:NODE):
+    def graphStichIn(self, nodeList:list[str], mergedNode:NODE):
         """Given a list of node IDs and a shared relationship between them (parallel or sequential) and a new node,
         the new node will replace the position of where all the nodes used to occupy. If the mergedNode is not
         an instance of NODE an exception is thrown.
@@ -1638,12 +1681,6 @@ class GRAPH:
 
         # nodeList is a list of ids,
         # while mergedNodes is an actual node
-
-        if isinstance(nodeRelationship, str):
-            if not ((nodeRelationship.lower() == "sequential") or (nodeRelationship.lower() == "parallel")):
-                raise Exception("Node relationship is not either 'sequential' or 'parallel'")
-        else:
-            raise Exception("Node relationship should be a string 'sequential' or 'parallel'")
 
         if isinstance(mergedNode, NODE):
             newEdgeList = []
@@ -1688,8 +1725,8 @@ class GRAPH:
 
         Returns:
             list[str]: (Recursive return) All changed nodes from this change and downstream
-        """        
-        self.partition()
+        """    
+        self.partition()    
         changedNodes = []
         nodeList = []
         if self.parallelGraphs:
@@ -1704,15 +1741,6 @@ class GRAPH:
                             continue
                         else:
                             changedNodes.append(infoList)
-
-            if graphWasChanged:
-                for nodeTuple in changedNodes:
-                    self.graphStichIn(nodeTuple[1], mergeType, nodeTuple[0])
-
-            for x in self.nodes:
-                nodeList.append(x)
-                # merge all nodes in parallel graphs
-            self.mergeRelatedNodes(nodeList, mergeType)
         else:
             mergeType = "sequential"
             self.sequentialPartition()
@@ -1724,17 +1752,17 @@ class GRAPH:
                     for infoList in nodeInfoList:
                         changedNodes.append(infoList)
 
-            if graphWasChanged:
-                for nodeTuple in changedNodes:
-                    self.graphStichIn(nodeTuple[1], mergeType, nodeTuple[0])
-
-            for x in self.nodes:
-                nodeList.append(x)
-                # merge all nodes in sequential graphs
-            self.mergeRelatedNodes(nodeList, mergeType)
+        if graphWasChanged:
+            for nodeTuple in changedNodes:
+                self.graphStichIn(nodeTuple[1], nodeTuple[0])
 
         for x in self.nodes:
-            changedNodes.append((self.nodes[x], nodeList, mergeType))
+            nodeList.append(x)
+            # merge all nodes in sequential graphs
+        self.mergeRelatedNodes(nodeList, mergeType)
+
+        for x in self.nodes:
+            changedNodes.append((self.nodes[x], nodeList))
             return changedNodes
 
     def mergeNodeIds(self, nodeList:list[str]):
@@ -1756,7 +1784,7 @@ class GRAPH:
                 fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
 
                 for nodeTuple in fullyMergedNodeInstructions:
-                    self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
+                    self.graphStichIn(nodeTuple[1], nodeTuple[0])
 
     def multiMergeNodeIds(self, listOfNodeLists:list[list[str]]):
         """Same as mergeNodeIds, but simultaneous merges
@@ -1801,7 +1829,7 @@ class GRAPH:
                 fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
 
                 for nodeTuple in fullyMergedNodeInstructions:
-                    self.graphStichIn(nodeTuple[1], nodeTuple[2], nodeTuple[0])
+                    self.graphStichIn(nodeTuple[1], nodeTuple[0])
 
     def mergeEverything(self):
         """
@@ -1828,106 +1856,55 @@ class GRAPH:
         subG = GRAPH(nodes=subNodes, edges=subEdges, alpha=self.alpha)
         return subG
 
-    def mergeFirstValidSubgraph(self, k:int):
-        if len(self.nodes) == 1:
-            return True
-
-        subSets = self.getNodeIdSequences(k)
-
-        subSets = [list(subSet) for subSet in subSets if self.areNodesConnected(list(subSet))]
-        subSets = [list(subSet) for subSet in subSets if self.isMergeNodesValid(list(subSet))]
-
-        if subSets is None:
-            Gcopy = self.deepCopy()
-            phi1 = Gcopy.phi
-            Gcopy.mergeEverything()
-            phi2 = Gcopy.phi
-            if phi2 < phi1:
-                self.mergeEverything()
-                return False
-            else:
-                return True
-        else:
-            for nodeSet in subSets:  # Could also make a method that simply projects the new phi value if [nodes] were to be merged
-                Gcopy = self.deepCopy()
-                phi1 = Gcopy.phi
-                Gcopy.mergeNodeIds(nodeSet)
-                phi2 = Gcopy.phi
-                if phi2 < phi1:
-                    self.mergeNodeIds(nodeSet)
-                    return False
-            return True
-
-    def mergeValidParGraphs(self):
-        if self.parallelGraphs:
-            toMerge = []
-            for graph in self.parallelGraphs:
-                toMerge.extend(list(graph.nodes.keys()))
-            self.mergeNodeIds(toMerge)
-        elif self.sequentialGraphs:
-            merges:list[list[str]] = []
-            for graph in self.sequentialGraphs:
-                potentialMerges = graph.mergeValidParGraphsRecursive()
-                if potentialMerges:
-                    # Check recursive code to make sure this is unnecesary
-                    if isinstance(potentialMerges[0], list):
-                        for nodeSet in potentialMerges:
-                            merges.append(nodeSet)
-                    else:
-                        merges.append(potentialMerges)
-
-            for toMerge in merges:
-                self.mergeNodeIds(toMerge)
-
-    def mergeValidParGraphsRecursive(self):
-        if len(self.nodes) == 1:
-            return None
-        elif self.parallelGraphs:
-            toMerge = []
-            for graph in self.parallelGraphs:
-                toMerge.extend(list(graph.nodes.keys()))
-            return toMerge
-        else:
-            fullToReturn = []
-            for graph in self.sequentialGraphs:
-                potentialReturn = graph.mergeValidParGraphsRecursive()
-                if potentialReturn:
-                    fullToReturn.append(potentialReturn)
-            return fullToReturn
-
-    def reducePhi(self, k:int):
-        hasBeenUpdated = False
-        while not hasBeenUpdated:
-            hasBeenUpdated = self.mergeFirstValidSubgraph(k)
-        return self.phi
-
-    def testReducePhi(self, k:int):
-        topCopy = self.deepCopy()
-        hasBeenUpdated = False
-        while not hasBeenUpdated:
-            hasBeenUpdated = topCopy.mergeFirstValidSubgraph(k)
-        return topCopy.phi
-
-    def optimizeReducePhi(self):
-        lowestPhi = self.phi
-        optimalSequenceLength = 0
-        if (len(self.nodes) > 1):
-            for i in range (2, len(self.nodes)+1):
-                currPhiReduction = self.testReducePhi(i)
-                if currPhiReduction != (-inf) and currPhiReduction < lowestPhi:
-                    lowestPhi = currPhiReduction
-                    optimalSequenceLength = i
-        if optimalSequenceLength != 0:
-            self.reducePhi(optimalSequenceLength)
-            return self.phi, optimalSequenceLength
-        else:
-            return None
-
-    def getNodeIdSequences(self, sequenceLength):
-        return list(combinations(self.nodes.keys(), sequenceLength))
-
-    def getValidSubGraphsRecursive(self):
+    def getValidSubGraphs(self, stichSubGraphs=False):
+        """Returns every valid subGraphs in the graph
         
+        Args:
+            stichSubGraphs (bool, optional): Whether all subGraphs should automatically be stiched or not. Defaults to False.
+
+        Returns:
+            list[str]: A list of all valid subGraphs. Some may be tuples, or nested
+        """     
+        
+        subGraphList = self.getValidSubGraphsRecursive()
+        
+        topNodes = self.getNodesNoParents()
+        bottomNodes = self.getNodesNoChildren()
+        
+        # regex = '([ab][ab])|(c[abd])|([abc]d)' creates an N-Graph because of one of the combinations. 
+        # Must have to do with merging across graphs, or not sharing any ancestors
+        if len(topNodes) > 1:
+            if topNodes not in subGraphList:
+                subGraphList.append(self.createSubGraph(topNodes))
+            if len(topNodes) > 2:
+                for i in range (2, len(topNodes)):
+                    topNodeCombs = list(combinations(topNodes, i))
+                    for nodeComb in topNodeCombs:
+                        topCombGraph = self.createSubGraph(list(nodeComb))
+                        subGraphList.append(topCombGraph)
+        if len(bottomNodes) > 1:
+            if bottomNodes not in subGraphList:
+                subGraphList.append(self.createSubGraph(bottomNodes))
+            if len(bottomNodes) > 2:
+                for i in range (2, len(bottomNodes)):
+                    bottomNodeCombs = list(combinations(bottomNodes, i))
+                    for nodeComb in bottomNodeCombs:
+                        bottomCombGraph = self.createSubGraph(list(nodeComb))
+                        subGraphList.append(bottomCombGraph)
+            
+        if stichSubGraphs and isinstance(subGraphList, list):
+            for i in range(len(subGraphList)-1):
+                if isinstance(subGraphList[i], list) or isinstance(subGraphList[i], tuple):
+                    subGraphList[i] = self.mergeValidSubGraphs(subGraphList[i])
+           
+        return subGraphList
+    
+    def getValidSubGraphsRecursive(self):
+        """Returns every valid subGraph in the graph, resursive method
+
+        Returns:
+            list[str]: (Recursive Return) returns all the valid subgraphs in this graph. Some may be tuples
+        """        
         if len(self.nodes) == 1:
             return None
         else:
@@ -1957,6 +1934,51 @@ class GRAPH:
                     if subGraph:
                         seqGraphSubGraphs.extend(subGraph)
                 return seqGraphSubGraphs
+            
+    def mergeValidSubGraphs(self, subGraphList:list):
+        """Creates a new graph object of sub graphs "stiched" together
+
+        Args:
+            subGraphList (list[GRAPH]): The list of graph objects to be merged
+
+        Raises:
+            Exception: The subGraphList is not a list
+
+        Returns:
+            GRAPH: The subGraphs stiched together
+        """        
+        
+        if isinstance(subGraphList, list) or isinstance(subGraphList, tuple):
+            nodeIds = []
+            for graph in subGraphList:
+                nodeIds.extend(graph.nodes.keys())
+            return self.createSubGraph(nodeIds)
+        else:
+            raise Exception("subGraphList is not a list or tuple")
+
+    def reducePhi(self):
+        returnVal = self.phiReduction()
+        while returnVal:
+            returnVal = self.phiReduction()
+            
+
+    def phiReduction(self):
+        subGraphList = self.getValidSubGraphs(stichSubGraphs=True)
+        if isinstance(subGraphList, list):
+            graphToMergePos = -99
+            for i in range(len(subGraphList)-1):
+                testGraph = self.deepCopy()
+                testGraph.mergeNodeIds([key for key in subGraphList[i].nodes])
+                # '0 <' Because work needs to be done with node cardinality
+                # The 'everything merge' returns a negative cardinality on normal to big regexes
+                # Maxwrapping
+                if 0 < testGraph.phi < self.phi:
+                    graphToMergePos = i
+            
+            if graphToMergePos != -99:
+                self.mergeNodeIds([key for key in subGraphList[graphToMergePos].nodes])
+            
+            return graphToMergePos != -99
 
     def partition(self):
         """Partitions the graph recursively into either sequential or parallel graphs. Should be run after instantiating a graph via regex.
@@ -1996,7 +2018,6 @@ class GRAPH:
             self.sequentialGraphs = None
         return
     
-
     def parallelPartition(self):
         """Partitions the graph in a parallel manner if parallelGraphs are present
         """        
@@ -2015,28 +2036,95 @@ class GRAPH:
         else:
             self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
 
-
     def reduce(self):
         """Reduces each node in the graph, i.e. abc -> a-c
         """        
         for node in self.nodes.values():
             node.reduce()
 
-    def getStartNodeId(self):
-        """Returns the node id of the node that starts the graph
+    def createVector(self):
+        """Creates a vector for the given Graph.
+            Raises:
+        Exception: No regex or nodes present
+        """
+        if not self.regex and not self.nodes:
+            raise Exception("No regex or nodes")
+        regex = self.outRegex
+        vector = np.zeros(128, dtype=int)
+
+        if len(regex) == 1:
+            vector[ord(regex)] = 1
+
+        elif regex == '\d':
+            vector[48:58] = 1
+
+        elif regex == '\D':
+            vector[31:47] = 1
+            vector[59:127] = 1
+
+        elif regex == '\w':
+            vector[48:58] = 1
+            vector[65:91] = 1
+            vector[95] = 1
+            vector[97:123] = 1
+
+        elif regex == '\W':
+            vector[31:48] = 1
+            vector[58:65] = 1
+            vector[91:95] = 1
+            vector[96] = 1
+            vector[123:127] = 1
+
+        elif '[' in regex:
+            pieces = partitionClass(regex)
+            for piece in pieces:
+                if '-' in piece:
+                    start = ord(piece[0])
+                    end = ord(piece[2]) + 1
+                    vector[start:end] = 1
+                elif piece == '\d':
+                    vector[48:58] = 1
+
+                elif piece == '\D':
+                    vector[31:47] = 1
+                    vector[59:127] = 1
+
+                elif piece == '\w':
+                    vector[48:58] = 1
+                    vector[65:91] = 1
+                    vector[95] = 1
+                    vector[97:123] = 1
+
+                elif piece == '\W':
+                    vector[31:48] = 1
+                    vector[58:65] = 1
+                    vector[91:95] = 1
+                    vector[96] = 1
+                    vector[123:127] = 1
+                else:
+                    vector[ord(piece)] = 1
+        self.vector = VECTOR(vector, self.alpha)
+
+    def checkAlternatePath(self, parentNode, nodeInQuestion):
+        """Checks for any alternate path besides the direct edge that connects two nodes
+
+        Args:
+            parentNode (str): Node id of the parent node
+            nodeInQuestion (str): Node id of the node in question
 
         Returns:
-            list[str]: A list of all nodes that start the graph
+            bool: True or false depending on whether an alternate path exists
         """        
-        if self.multiGraphsExist:
-            toReturn = []
-            for graph in self.parallelGraphs:
-                toReturn.append(graph.getStartNodeId())
-            return toReturn
-        elif hasattr(self, 'sequentialGraphs'):
-            return list(self.sequentialGraphs[0].nodes.keys())[0]
+        if not self.getChildren(parentNode):
+            return False
         else:
-            return list(self.nodes.keys())[0]
+            results = []
+            for child in self.getChildren(parentNode):
+                if child == nodeInQuestion:
+                    return True
+                else:
+                    results.append(self.checkAlternatePath(child, nodeInQuestion))
+            return any(results)
 
     @property
     def multiGraphsExist(self):
@@ -2069,27 +2157,6 @@ class GRAPH:
                             if not result:
                                 return True
         return False
-
-    def checkAlternatePath(self, parentNode, nodeInQuestion):
-        """Checks for any alternate path besides the direct edge that connects two nodes
-
-        Args:
-            parentNode (str): Node id of the parent node
-            nodeInQuestion (str): Node id of the node in question
-
-        Returns:
-            bool: True or false depending on whether an alternate path exists
-        """        
-        if not self.getChildren(parentNode):
-            return False
-        else:
-            results = []
-            for child in self.getChildren(parentNode):
-                if child == nodeInQuestion:
-                    return True
-                else:
-                    results.append(self.checkAlternatePath(child, nodeInQuestion))
-            return any(results)
 
     @property
     def cardinality(self):
