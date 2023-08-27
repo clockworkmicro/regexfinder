@@ -1,6 +1,6 @@
 import copy
 import random
-from itertools import combinations
+from itertools import combinations, chain
 from math import inf
 
 import more_itertools as mit
@@ -885,6 +885,83 @@ class GRAPH:
             else:
                 tempDict[(parents, children)] = [id_]
         return list(tempDict.values())
+
+    def getGenerationalSets(self):
+        """A method to get a list of how far away each node is from the topNodes (via edges)
+
+        Returns:
+            list[[list[tuple]]]: Returns a list of lists containing tuples (nodeId, distanceFromTopNodes). List groups are ordered.
+        """        
+        
+        topNodes = self.getNodesNoParents()
+        generationMarkedNodes = [(topNode, 1) for topNode in topNodes]
+        
+        for node in topNodes:
+            children = self.getChildren(node)
+            for child in children:
+                returnList = self.getGenerationalSetsRecursive(child, 2)
+                for element in returnList:
+                    generationMarkedNodes.append(element)
+        
+        maxDepth = 0
+        for element in generationMarkedNodes:
+            depth = element[1]
+            if depth > maxDepth:
+                maxDepth = depth
+        
+        nodeIdList = []
+        recDepthList = []
+        for element in generationMarkedNodes:
+            if element[0] in nodeIdList:
+                nodeIdPlace = nodeIdList.index(element[0])
+                if element[1] > recDepthList[nodeIdPlace]:
+                    nodeIdList.append(element[0])
+                    recDepthList.append(element[1])
+                    nodeIdList.pop(nodeIdPlace)
+                    recDepthList.pop(nodeIdPlace)
+            else:
+                nodeIdList.append(element[0])
+                recDepthList.append(element[1])
+                
+        
+        generationMarkedNodes = [(nodeIdList[n], recDepthList[n]) for n in range(len(nodeIdList))]
+        
+        toReturn = [[] for n in range(maxDepth)]
+        for element in generationMarkedNodes:
+            place = element[1]-1
+            toReturn[place].append(element)
+        
+        return toReturn
+            
+
+    def getGenerationalSetsRecursive(self, currNodeId, recursionDepth):   
+        """Recursive method for getGenerationalSets
+
+        Args:
+            currNodeId (str): The id of the current node being recursed into
+            recursionDepth (int): The current recursion depth
+
+        Returns:
+            list[tuple]: [Recursive return] Returns information of all children of current Node
+        """        
+        
+        '''
+        Base Case:
+            At a node. Return (nodeId, depth) + all previous nodes and depths
+        Else:
+            Recurse into children, +1 depth
+        '''
+        
+        children = self.getChildren(currNodeId)
+        returnsList = [(currNodeId, recursionDepth)]
+        
+        if children:
+            for child in children:
+                downstream = self.getGenerationalSetsRecursive(child, recursionDepth+1)
+                for element in downstream:
+                    returnsList.append(element)
+                
+        return returnsList
 
     def getNodeAncestorsList(self, inList:list[str]):
         """Returns a list of node IDs of ancestors, the parents of all of each node's parents
@@ -1871,6 +1948,12 @@ class GRAPH:
         topNodes = self.getNodesNoParents()
         bottomNodes = self.getNodesNoChildren()
         
+        # topNodeChildren = set()
+        # bottomNodeParents = set()
+        # if not self.parallelGraphs:
+        #     for node in topNodes:
+        #         topNodeChildren.extend(self.getChildren(node))
+        
         # regex = '([ab][ab])|(c[abd])|([abc]d)' creates an N-Graph because of one of the combinations. 
         # Must have to do with merging across graphs, or not sharing any ancestors
         if len(topNodes) > 1:
@@ -1896,7 +1979,10 @@ class GRAPH:
             for i in range(len(subGraphList)-1):
                 if isinstance(subGraphList[i], list) or isinstance(subGraphList[i], tuple):
                     subGraphList[i] = self.mergeValidSubGraphs(subGraphList[i])
-           
+        
+        # Debug Lines below (excl. return)
+        if isinstance(subGraphList, list):
+            print("Nodes", len(self.nodes), "VSG", len(subGraphList))
         return subGraphList
     
     def getValidSubGraphsRecursive(self):
@@ -1961,19 +2047,21 @@ class GRAPH:
         while returnVal:
             returnVal = self.phiReduction()
             
-
     def phiReduction(self):
         subGraphList = self.getValidSubGraphs(stichSubGraphs=True)
         if isinstance(subGraphList, list):
             graphToMergePos = -99
+            smallestPhi = -99
             for i in range(len(subGraphList)-1):
                 testGraph = self.deepCopy()
-                testGraph.mergeNodeIds([key for key in subGraphList[i].nodes])
-                # '0 <' Because work needs to be done with node cardinality
-                # The 'everything merge' returns a negative cardinality on normal to big regexes
-                # Maxwrapping
-                if 0 < testGraph.phi < self.phi:
-                    graphToMergePos = i
+                if not self.willNgraphAppear([key for key in subGraphList[i].nodes]):
+                    testGraph.mergeNodeIds([key for key in subGraphList[i].nodes])
+                    # '0 <' Because work needs to be done with node cardinality
+                    # The 'everything merge' returns a negative cardinality on normal to big regexes
+                    # Maxwrapping
+                    if (smallestPhi == -99 and 0 < testGraph.phi < self.phi) or 0 < testGraph.phi < smallestPhi:
+                        smallestPhi = testGraph.phi
+                        graphToMergePos = i
             
             if graphToMergePos != -99:
                 self.mergeNodeIds([key for key in subGraphList[graphToMergePos].nodes])
@@ -2125,16 +2213,6 @@ class GRAPH:
                 else:
                     results.append(self.checkAlternatePath(child, nodeInQuestion))
             return any(results)
-
-    @property
-    def multiGraphsExist(self):
-        """Returns whether multiple parallel graphs exists, UNNECESARY METHOD
-
-        Returns:
-            bool: Whether there's multiple graphs
-        """        
-        self.parallelPartition()
-        return self.parallelGraphs != None
 
     @property
     def doesNgraphExist(self):
