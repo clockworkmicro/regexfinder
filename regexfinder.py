@@ -892,7 +892,7 @@ class GRAPH:
         Returns:
             list[[list[tuple]]]: Returns a list of lists containing tuples (nodeId, distanceFromTopNodes). List groups are ordered.
         """        
-        
+
         topNodes = self.getNodesNoParents()
         generationMarkedNodes = [(topNode, 1) for topNode in topNodes]
         
@@ -902,7 +902,7 @@ class GRAPH:
                 returnList = self.getGenerationalSetsRecursive(child, 2)
                 for element in returnList:
                     generationMarkedNodes.append(element)
-        
+
         maxDepth = 0
         for element in generationMarkedNodes:
             depth = element[1]
@@ -926,13 +926,12 @@ class GRAPH:
         
         generationMarkedNodes = [(nodeIdList[n], recDepthList[n]) for n in range(len(nodeIdList))]
         
-        toReturn = [[] for n in range(maxDepth)]
+        toReturn = [[] for _ in range(maxDepth)]
         for element in generationMarkedNodes:
             place = element[1]-1
             toReturn[place].append(element)
         
         return toReturn
-            
 
     def getGenerationalSetsRecursive(self, currNodeId, recursionDepth):   
         """Recursive method for getGenerationalSets
@@ -1797,50 +1796,56 @@ class GRAPH:
         return nodeListGraph
 
     def mergeToNodeRecursive(self):
-        """Merges a group of nodes regardless of relationship status. Shoudl be used in conjunction with
+        """Merges a group of nodes regardless of relationship status. Should be used in conjunction with
         'getNode[Id]ListGraph'.
 
         Returns:
             list[str]: (Recursive return) All changed nodes from this change and downstream
         """    
-        self.partition()    
-        changedNodes = []
-        nodeList = []
-        if self.parallelGraphs:
-            mergeType = "parallel"
-            graphWasChanged = False
-            for x in self.parallelGraphs:
-                if len(x.nodes) != 1:
-                    graphWasChanged = True
-                    nodeInfoList = x.mergeToNodeRecursive()
-                    for infoList in nodeInfoList:
-                        if infoList in changedNodes:
-                            continue
-                        else:
-                            changedNodes.append(infoList)
+        
+        '''
+        Base case:
+            The subGraph you're at is made up of only simple nodes. Merge them. Return the new node as well as what the relationship was
+        Else:
+            Go through each subGraph. If the subGraph is not simple (has more than one node) recurse into the graph until the subGraphs are simple,
+            then treat the first iteration as a base case
+        '''
+        self.partition()
+        
+        if hasattr(self, 'parallelGraphs') and self.parallelGraphs is not None:
+            eachSimpleGraph = [graph for graph in self.parallelGraphs if len(graph.nodes) == 1]
+            if len(self.parallelGraphs) == len(eachSimpleGraph):
+                nodeIdList = list(self.nodes.keys())
+                self.mergeRelatedNodes((nodeIdList), 'parallel')
+                return (nodeIdList, list(self.nodes.values())[0])
+            else:
+                originalKeys = list(self.nodes.keys())
+                for graph in self.parallelGraphs:
+                    if len(graph.nodes) > 1:
+                        returnTuple = graph.mergeToNodeRecursive()
+                        self.graphStichIn(returnTuple[0], returnTuple[1])
+                nodeIdList = list(self.nodes.keys())
+                self.mergeRelatedNodes((nodeIdList), 'parallel')
+                return (originalKeys, list(self.nodes.values())[0])
+            
+        elif hasattr(self, 'sequentialGraphs') and self.sequentialGraphs is not None:
+            eachSimpleGraph = [graph for graph in self.sequentialGraphs if len(graph.nodes) == 1]
+            if len(self.sequentialGraphs) == len(eachSimpleGraph):
+                nodeIdList = list(self.nodes.keys())
+                self.mergeRelatedNodes((nodeIdList), 'sequential')
+                return (nodeIdList, list(self.nodes.values())[0])
+            else:
+                originalKeys = list(self.nodes.keys())
+                for graph in self.sequentialGraphs:
+                    if len(graph.nodes) > 1:
+                        returnTuple = graph.mergeToNodeRecursive()
+                        self.graphStichIn(returnTuple[0], returnTuple[1])
+                nodeIdList = list(self.nodes.keys())
+                self.mergeRelatedNodes((nodeIdList), 'sequential')
+                return (originalKeys, list(self.nodes.values())[0])   
         else:
-            mergeType = "sequential"
-            self.sequentialPartition()
-            graphWasChanged = False
-            for x in self.sequentialGraphs:
-                if len(x.nodes) != 1:
-                    graphWasChanged = True
-                    nodeInfoList = x.mergeToNodeRecursive()
-                    for infoList in nodeInfoList:
-                        changedNodes.append(infoList)
-
-        if graphWasChanged:
-            for nodeTuple in changedNodes:
-                self.graphStichIn(nodeTuple[1], nodeTuple[0])
-
-        for x in self.nodes:
-            nodeList.append(x)
-            # merge all nodes in sequential graphs
-        self.mergeRelatedNodes(nodeList, mergeType)
-
-        for x in self.nodes:
-            changedNodes.append((self.nodes[x], nodeList))
-            return changedNodes
+            raise Exception("Sequential and Parallel Graphs do not exist, somehow")
+                
 
     def mergeNodeIds(self, nodeList:list[str]):
         """Given a list of node IDs, Creates a new node merged from each node, and is
@@ -1858,10 +1863,9 @@ class GRAPH:
                 # nodeIdGraph.partition()
 
                 # Makes a one node graph of those nodes
-                fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
+                returnTuple = nodeIdGraph.mergeToNodeRecursive()
 
-                for nodeTuple in fullyMergedNodeInstructions:
-                    self.graphStichIn(nodeTuple[1], nodeTuple[0])
+                self.graphStichIn(returnTuple[0], returnTuple[1])
 
     def multiMergeNodeIds(self, listOfNodeLists:list[list[str]]):
         """Same as mergeNodeIds, but simultaneous merges
@@ -1903,10 +1907,9 @@ class GRAPH:
                 nodeIdGraph = self.createSubGraphNodes(nodeList)
 
                 # Makes a one node graph of those nodes
-                fullyMergedNodeInstructions = nodeIdGraph.mergeToNodeRecursive()
+                returnTuple = nodeIdGraph.mergeToNodeRecursive()
 
-                for nodeTuple in fullyMergedNodeInstructions:
-                    self.graphStichIn(nodeTuple[1], nodeTuple[0])
+                self.graphStichIn(returnTuple[0], returnTuple[1])
 
     def mergeEverything(self):
         """
@@ -2049,22 +2052,45 @@ class GRAPH:
             
     def phiReduction(self):
         subGraphList = self.getValidSubGraphs(stichSubGraphs=True)
+        generationalSets = self.getGenerationalSets()
+        setToMerge = ''
         if isinstance(subGraphList, list):
             graphToMergePos = -99
             smallestPhi = -99
             for i in range(len(subGraphList)-1):
                 testGraph = self.deepCopy()
-                if not self.willNgraphAppear([key for key in subGraphList[i].nodes]):
-                    testGraph.mergeNodeIds([key for key in subGraphList[i].nodes])
+                keyList = [key for key in subGraphList[i].nodes]
+                if not self.willNgraphAppear(keyList):
+                    print(keyList)
+                    testGraph.mergeNodeIds(keyList)
                     # '0 <' Because work needs to be done with node cardinality
                     # The 'everything merge' returns a negative cardinality on normal to big regexes
                     # Maxwrapping
                     if (smallestPhi == -99 and 0 < testGraph.phi < self.phi) or 0 < testGraph.phi < smallestPhi:
                         smallestPhi = testGraph.phi
+                        setToMerge = "SGL"
                         graphToMergePos = i
             
+            for i in range(len(generationalSets)):
+                testGraph = self.deepCopy()
+                nodeIdList = [element[0] for element in generationalSets[i]]
+                if len(nodeIdList) > 1:
+                    if not self.willNgraphAppear(nodeIdList):
+                        testGraph.mergeNodeIds(nodeIdList)
+                        # '0 <' Because work needs to be done with node cardinality
+                        # The 'everything merge' returns a negative cardinality on normal to big regexes
+                        # Maxwrapping
+                        if (smallestPhi == -99 and 0 < testGraph.phi < self.phi) or 0 < testGraph.phi < smallestPhi:
+                            smallestPhi = testGraph.phi
+                            setToMerge = "GS"
+                            graphToMergePos = i
+                
+            
             if graphToMergePos != -99:
-                self.mergeNodeIds([key for key in subGraphList[graphToMergePos].nodes])
+                if setToMerge == "GS":
+                    self.mergeNodeIds([element[0] for element in generationalSets[graphToMergePos]])
+                else:
+                    self.mergeNodeIds([key for key in subGraphList[graphToMergePos].nodes])
             
             return graphToMergePos != -99
 

@@ -1065,6 +1065,12 @@ class GraphTest(unittest.TestCase):
         validSubGraphsList2 = g2.getValidSubGraphs()
         print(validSubGraphsList2)
 
+    def testGetGenerationSubLists(self):
+        regex = 'a(b|c)d'
+        G = GRAPH(regex=regex)
+        G.partition()
+        
+        self.assertEqual([[('1', 1)], [('4', 2), ('5', 2)], [('3', 3)]], G.getGenerationalSets())
 
 
 
