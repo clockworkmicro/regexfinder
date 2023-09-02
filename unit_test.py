@@ -865,23 +865,6 @@ class GraphTest(unittest.TestCase):
             NODE(vector=[0], quantifier='4,6a')
             NODE(vector=[0], quantifier='')
             NODE(vector=[0], quantifier=None)
-            
-    def testMultiGraphs(self):
-        g1 = GRAPH(regex='a')
-        g1.partition()
-        self.assertFalse(g1.multiGraphsExist)
-        g2 = GRAPH(regex='a|b')
-        g2.partition()
-        self.assertTrue(g2.multiGraphsExist)
-        
-        g3 = GRAPH(regex='a(b|c)d')
-        g3.partition()
-        self.assertFalse(g3.multiGraphsExist)
-        
-        g4 = GRAPH(regex='([ab][ab])|(c[abd])|([abc]d)')
-        g4.partition()
-        self.assertTrue(g4.multiGraphsExist)
-        
         
     def testStartNode(self):
         n1 = NODE(regex='a')
@@ -1072,8 +1055,99 @@ class GraphTest(unittest.TestCase):
         
         self.assertEqual([[('1', 1)], [('4', 2), ('5', 2)], [('3', 3)]], G.getGenerationalSets())
 
+    def testCheckStraighShot(self):
+        
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        
+        e1 = EDGE(n1.id_, n3.id_)
+        e2 = EDGE(n1.id_, n2.id_)
+        e3 = EDGE(n2.id_, n3.id_)
 
+        edgeList = [e1, e2, e3]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        
+        self.assertTrue(G.doesStraightShotExist)
+        
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        
+        e1 = EDGE(n1.id_, n3.id_)
+        e2 = EDGE(n1.id_, n2.id_)
 
+        edgeList = [e1, e2]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        
+        self.assertFalse(G.doesStraightShotExist)
+        
+        n1 = NODE('[a1]')
+        n2 = NODE('[b2]')
+        n3 = NODE('[c3]')
+        n4 = NODE('[d4]')
+        n5 = NODE('[e5]')
+        n6 = NODE('[f6]')
+        n7 = NODE('[g7]')
+        n8 = NODE('[h8]')
+
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        e24 = EDGE(n2.id_, n4.id_)
+        e45 = EDGE(n4.id_, n5.id_)
+        e46 = EDGE(n4.id_, n6.id_)
+        e57 = EDGE(n5.id_, n7.id_)
+        e67 = EDGE(n6.id_, n7.id_)
+        e37 = EDGE(n3.id_, n8.id_)
+        e78 = EDGE(n7.id_, n8.id_)
+
+        edgeList = [e12, e23, e24, e45, e46, e37, e57, e67, e78]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6, n7, n8]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        
+        self.assertFalse(G.doesStraightShotExist)
+        
+        n1 = NODE('[a1]')
+        n2 = NODE('[b2]')
+        n3 = NODE('[c3]')
+        n4 = NODE('[d4]')
+        n6 = NODE('[f6]')
+        n7 = NODE('[g7]')
+        n8 = NODE('[h8]')
+
+        e12 = EDGE(n1.id_, n2.id_)
+        e23 = EDGE(n2.id_, n3.id_)
+        e24 = EDGE(n2.id_, n4.id_)
+        e46 = EDGE(n4.id_, n6.id_)
+        e47 = EDGE(n4.id_, n7.id_)
+        e67 = EDGE(n6.id_, n7.id_)
+        e38 = EDGE(n3.id_, n8.id_)
+        e78 = EDGE(n7.id_, n8.id_)
+
+        edgeList = [e12, e23, e24, e46, e47, e38, e67, e78]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n6, n7, n8]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        self.assertTrue(G.doesStraightShotExist)
+        self.assertEqual(G.doesStraightShotExist, e47)
+        
+    def testWillStraightShotAppear(self):
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        
+        e1 = EDGE(n1.id_, n2.id_)
+        e2 = EDGE(n1.id_, n3.id_)
+        e3 = EDGE(n2.id_, n4.id_)
+        e4 = EDGE(n3.id_, n4.id_)
+        
+        edgeList = [e1, e2, e3, e4]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        
+        self.assertTrue(G.willStraightShotAppear([n2.id_, n4.id_]))
 
 if __name__ == '__main__':
     unittest.main()

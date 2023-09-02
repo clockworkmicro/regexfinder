@@ -789,6 +789,13 @@ class GRAPH:
         """        
         [self.edges.remove(edge) for edge in edgeList]
 
+    def removeStraightShots(self):
+        straightShot = self.doesStraightShotExist
+        while straightShot:
+            self.edges.remove(straightShot)
+            straightShot = self.doesStraightShotExist
+            
+
     def getParents(self, id_:str):
         """Returns node ID(s) of the parent(s) of a given node via ID. Returns false if nonexistent.
 
@@ -1110,8 +1117,8 @@ class GRAPH:
 
         sortedEqClasses = [sorted(eqClass) for eqClass in eqClasses if self.testCutSet(eqClass)]
         fullOrderedCutSets = []
-        nodesNoParents = self.getNodesNoParents()
         
+        nodesNoParents = self.getNodesNoParents()
         
         if (len(sortedEqClasses)) == 1:
             ancestors = self.getNodeAncestors(sortedEqClasses[0][0])
@@ -1136,8 +1143,7 @@ class GRAPH:
                     topEqClass = eqClass.copy()
             
             if not topEqClass:
-                for node in nodesNoParents:
-                    topEqClass = self.getNextEqClass(node, sortedEqClasses)
+                topEqClass = self.getNextEqClass(nodesNoParents, sortedEqClasses)
             
             totalTopEqGraph = self.getGroupNodeAncestOrDesc(topEqClass, 'ancestors')
             
@@ -1147,8 +1153,7 @@ class GRAPH:
                 currentCutSet = topEqClass.copy()
             
             fullOrderedCutSets.append(sorted(currentCutSet))
-            arbitraryChild = self.getChildren(currentCutSet[0])[0]
-            nextCutSet:list[str] = self.getNextEqClass(arbitraryChild, sortedEqClasses)
+            nextCutSet:list[str] = self.getNextEqClass(currentCutSet, sortedEqClasses)
             inBetweenGraphs:list[str] = []
             while nextCutSet:
                 
@@ -1163,11 +1168,8 @@ class GRAPH:
                 fullOrderedCutSets.append(sorted(nextCutSet))
                 
                 currentCutSet = nextCutSet.copy()
-                arbitraryChild = self.getChildren(currentCutSet[0])
-                if arbitraryChild:
-                    nextCutSet:list[str] = self.getNextEqClass(arbitraryChild[0], sortedEqClasses)
-                else:
-                    nextCutSet = None
+                
+                nextCutSet:list[str] = self.getNextEqClass(currentCutSet, sortedEqClasses)
 
             lastEqGraph = currentCutSet.copy()
             lastEqGraphDescendants = self.getGroupNodeAncestOrDesc(lastEqGraph, 'descendants')
@@ -1182,39 +1184,38 @@ class GRAPH:
                     break
             
             while sortedEqClasses:
-                toAppend = self.getNextEqClass(fullOrderedCutSets[len(fullOrderedCutSets)-1][0], sortedEqClasses)
+                toAppend = self.getNextEqClass(fullOrderedCutSets[len(fullOrderedCutSets)-1], sortedEqClasses)
                 fullOrderedCutSets.append(toAppend)
                 sortedEqClasses.remove(toAppend)
 
         return fullOrderedCutSets
 
-    def getNextEqClass(self, currNode:str, eqClassList:list[list[str]]):
+    def getNextEqClass(self, eqClass:list[str], eqClassList:list[list[str]]):
         """Gets the next sequential eqClas
 
         Args:
-            currNode (str): A node in the current eqClass you are in *change to class itself
+            eqClass (list[str]): The current eqClass
             eqClassList (list[list[str]]): The entire list of eqClasses
 
         Returns:
             list[str]: The next eqClass
         """        
         
-        # should probably pass the current eqClass instead of just a node
+        for node in eqClass:
+            children = self.getChildren(node)
+            while children:
+                for kid in children:
+                    for currEqClass in eqClassList:
+                        if kid in currEqClass:
+                            if eqClass != currEqClass:
+                                return currEqClass
+                children1 = []
+                for kid in children:
+                    children1.extend(self.getChildren(kid))
+                children.clear()
+                children = children1
         
-        for eqClass in eqClassList:
-            if currNode in eqClass:
-                return eqClass
-        
-        children = self.getChildren(currNode)
-        toReturn = None
-        
-        if children:
-            for child in children:
-                toReturn = self.getNextEqClass(child, eqClassList)
-                if not toReturn:
-                    return toReturn
-                
-        return toReturn
+        return None
 
     def getCutSetGroup(self, cutSetUpper:list[str], cutSetLower:list[str]):
         """NEEDSWORK gets the next sequential cutSet
@@ -1588,7 +1589,11 @@ class GRAPH:
 
         Returns:
             bool: True or False depending on whether the n-graph will appear
-        """        
+        """ 
+        '''
+        If a node has multiple parents, each parent must have it as its unique child,
+        straight shots are an exception
+        '''      
 
         tempList = nodeList.copy()
         for currNode in tempList: # Removing all nodes that are directly related to each other
@@ -1612,13 +1617,41 @@ class GRAPH:
                         if len(parentsChildren)>1:
                             if not set(parentsChildren).issubset(tempList):
                                 for kid in parentsChildren:
-                                    if kid != currNode:
-                                        # Check if it's a straight shot (exeption to the multiple children rule)
-                                        result = self.checkAlternatePath(kid, currNode)
-                                        if not result:
-                                            # If there are no other alternate pathes, it is not a straight shot
-                                            return True
+                                    result = self.checkAlternatePath(kid, currNode, 0)
+                                    if not result:
+                                        # If there are no other alternate pathes, it is not a straight shot
+                                        return True
         return False
+
+    def willStraightShotAppear(self, nodeList:list[str]):
+        """Checks to see if the nodes will create a straight shot if merged
+
+        Args:
+            nodeList (list[str]): The list of node ids to be checked (if merged)
+
+        Returns:
+            bool: Whether or not a straight shot will be created
+        """
+        
+        upperParents = []
+        lowerChildren = []
+        for node in nodeList:
+            currNodeParents = self.getParents(node)
+            currNodeChildren = self.getChildren(node)
+            for kid in currNodeParents:
+                if kid not in nodeList:
+                    upperParents.append(kid)
+            for kid in currNodeChildren:
+                if kid not in nodeList:
+                    lowerChildren.append(kid)
+        
+        results = []    
+        for parent in upperParents:
+            results.append(self.checkAlternatePathMultiNodesQuestion(parent, nodeList, 0))
+        for kid in lowerChildren:
+            results.append(self.checkAlternatePathMultiNodesUpStream(nodeList, kid, 0))
+            
+        return any(results)
 
     def isMergeNodesValid(self, nodeList:list[str]):
         """Checks whether merging a group of nodes is allowed
@@ -2061,7 +2094,7 @@ class GRAPH:
                 testGraph = self.deepCopy()
                 keyList = [key for key in subGraphList[i].nodes]
                 if not self.willNgraphAppear(keyList):
-                    print(keyList)
+                    # print(keyList)
                     testGraph.mergeNodeIds(keyList)
                     # '0 <' Because work needs to be done with node cardinality
                     # The 'everything merge' returns a negative cardinality on normal to big regexes
@@ -2078,21 +2111,32 @@ class GRAPH:
                     if not self.willNgraphAppear(nodeIdList):
                         testGraph.mergeNodeIds(nodeIdList)
                         # '0 <' Because work needs to be done with node cardinality
-                        # The 'everything merge' returns a negative cardinality on normal to big regexes
-                        # Maxwrapping
+                        # The 'everything merge' returns a negative cardinality on normal to big regexes maxwrapping
                         if (smallestPhi == -99 and 0 < testGraph.phi < self.phi) or 0 < testGraph.phi < smallestPhi:
                             smallestPhi = testGraph.phi
                             setToMerge = "GS"
                             graphToMergePos = i
                 
             
+            testGraph = self.deepCopy()
+            testGraph.squishAllGenerationSets()
+            if (smallestPhi == -99 and 0 < testGraph.phi < self.phi) or 0 < testGraph.phi < smallestPhi:
+                setToMerge = 'squish'
+            
             if graphToMergePos != -99:
                 if setToMerge == "GS":
                     self.mergeNodeIds([element[0] for element in generationalSets[graphToMergePos]])
-                else:
+                elif setToMerge == 'SGL':
                     self.mergeNodeIds([key for key in subGraphList[graphToMergePos].nodes])
+                else:
+                    self.squishAllGenerationSets()
             
             return graphToMergePos != -99
+        
+    def squishAllGenerationSets(self):
+        for genSet in self.getGenerationalSets():
+            self.mergeNodeIds([element[0] for element in genSet])
+                
 
     def partition(self):
         """Partitions the graph recursively into either sequential or parallel graphs. Should be run after instantiating a graph via regex.
@@ -2105,6 +2149,7 @@ class GRAPH:
         if self.doesNgraphExist:
             raise Exception("Graph is invalid, cointains N-graph")
 
+        self.removeStraightShots()
         self.simplify()
         
         if len(self.nodes) == 1:
@@ -2219,26 +2264,146 @@ class GRAPH:
                     vector[ord(piece)] = 1
         self.vector = VECTOR(vector, self.alpha)
 
-    def checkAlternatePath(self, parentNode, nodeInQuestion):
+    def checkAlternatePath(self, upStreamNode:str, nodeInQuestion:str, recursionDepth:int):
         """Checks for any alternate path besides the direct edge that connects two nodes
 
         Args:
-            parentNode (str): Node id of the parent node
+            upStreamNode (str): Node id of the upstream node
             nodeInQuestion (str): Node id of the node in question
+            recursionDepth (int): How many times you have recursed into this function
 
         Returns:
             bool: True or false depending on whether an alternate path exists
         """        
-        if not self.getChildren(parentNode):
+        if not self.getChildren(upStreamNode):
             return False
         else:
             results = []
-            for child in self.getChildren(parentNode):
+            for child in self.getChildren(upStreamNode):
                 if child == nodeInQuestion:
+                    if recursionDepth:
+                        return True
+                    else:
+                        results.append(True)
+                        continue
+                results.append(self.checkAlternatePath(child, nodeInQuestion, recursionDepth+1))
+            
+            trueCheck = -1
+            for result in results:
+                if result:
+                    if recursionDepth:
+                        return True
+                    trueCheck += 1
+                    if trueCheck:
+                        return True
+            return False
+        
+    def checkAlternatePathMultiNodesQuestion(self, upStreamNode:str, nodesInQuestion:list[str], recursionDepth:int):
+        """Checks for any alternate path besides the direct edge that connects two nodes
+
+        Args:
+            upStreamNode (str): Node id of the upstream node
+            nodesInQuestion (list[str]):List of node ids of the nodes in question
+            recursionDepth (int): How many times you have recursed into this function
+
+
+        Returns:
+            bool: True or false depending on whether an alternate path exists
+        """        
+        if not self.getChildren(upStreamNode):
+            return False
+        else:
+            results = []
+            for child in self.getChildren(upStreamNode):
+                if child in nodesInQuestion:
+                    if recursionDepth:
+                        return True
+                    else:
+                        results.append(True)
+                        continue
+                results.append(self.checkAlternatePathMultiNodesQuestion(child, nodesInQuestion, recursionDepth+1))
+            
+            trueCheck = -1
+            for result in results:
+                if result:
+                    if recursionDepth:
+                        return True
+                    trueCheck += 1
+                    if trueCheck:
+                        return True
+            return False
+        
+    def checkAlternatePathMultiNodesUpStream(self, upStreamNodes:list[str], nodeInQuestion:str, recursionDepth:int):
+        """Checks for any alternate path besides the direct edge that connects two nodes
+
+        Args:
+            upStreamNode (list[str]): Node ids of the upstream nodes
+            nodesInQuestion (str):List of node ids of the nodes in question
+            recursionDepth (int): How many times you have recursed into this function
+
+        Returns:
+            bool: True or false depending on whether an alternate path exists
+        """        
+        childrenOfUpStream = []
+        for node in upStreamNodes:
+            nodeChildren = self.getChildren(node)
+            if nodeChildren:
+                childrenOfUpStream.extend(nodeChildren)
+        results = []
+        for child in childrenOfUpStream:
+            if child == nodeInQuestion:
+                if recursionDepth:
                     return True
                 else:
-                    results.append(self.checkAlternatePath(child, nodeInQuestion))
-            return any(results)
+                    results.append(True)
+                    continue
+            results.append(self.checkAlternatePathMultiNodesUpStream(child, nodeInQuestion, recursionDepth+1))
+        
+        trueCheck = -1
+        for result in results:
+            if result:
+                if recursionDepth:
+                        return True
+                trueCheck += 1
+                if trueCheck:
+                    return True
+        return False
+    
+    def checkAlternatePathMultiNodes(self, upStreamNodes:list[str], nodesInQuestion:list[str], recursionDepth:int):
+        """Checks for any alternate path besides the direct edge that connects two nodes
+
+        Args:
+            upStreamNode (list[str]): Node ids of the upstream nodes
+            nodesInQuestion (list[str]):List of node ids of the nodes in question
+            recursionDepth (int): How many times you have recursed into this function
+
+        Returns:
+            bool: True or false depending on whether an alternate path exists
+        """        
+        childrenOfUpStream = []
+        for node in upStreamNodes:
+            nodeChildren = self.getChildren(node)
+            if nodeChildren:
+                childrenOfUpStream.extend(nodeChildren)
+        results = []
+        for child in childrenOfUpStream:
+            if child in nodesInQuestion:
+                if recursionDepth:
+                    return True
+                else:
+                    results.append(True)
+                    continue
+            results.append(self.checkAlternatePathMultiNodes(child, nodesInQuestion, recursionDepth+1))
+        
+        trueCheck = -1
+        for result in results:
+            if result:
+                if recursionDepth:
+                        return True
+                trueCheck += 1
+                if trueCheck:
+                    return True
+        return False
 
     @property
     def doesNgraphExist(self):
@@ -2253,13 +2418,28 @@ class GRAPH:
                 for parent in parentsList:
                     childrenList = self.getChildren(parent)
                     if len(childrenList) > 1: # If the node has multiple parents, and that parent has multiple children
-                        for kid in childrenList:
-                            if kid == child:
-                                continue
-                             # Check if it's a straight shot (exeption to the multiple children rule)
-                            result = self.checkAlternatePath(kid, child)
-                            if not result:
-                                return True
+                            # Check if it's a straight shot (exeption to the multiple children rule)
+                        result = self.checkAlternatePath(parent, child, 0)
+                        if not result:
+                            return True
+        return False
+
+    @property
+    def doesStraightShotExist(self):
+        """Checks the current graph for any straight shots
+
+        Returns:
+            bool: Whether the straight shot exists or not
+        """   
+        for node in self.nodes.keys():
+            nodeChildren = self.getChildren(node)
+            if nodeChildren:
+                if len(nodeChildren) > 1:
+                    for kid in nodeChildren:
+                        kidDescendants = self.getNodeDescendants(kid)
+                        descendantChildrenIntersection = list(set(kidDescendants).intersection(nodeChildren))
+                        if descendantChildrenIntersection:
+                            return self.getEdge(node, descendantChildrenIntersection[0])
         return False
 
     @property
