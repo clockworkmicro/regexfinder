@@ -1053,7 +1053,7 @@ class GraphTest(unittest.TestCase):
         G = GRAPH(regex=regex)
         G.partition()
         
-        self.assertEqual([[('1', 1)], [('4', 2), ('5', 2)], [('3', 3)]], G.getGenerationalSets())
+        self.assertEqual([['1'], ['4', '5'], ['3']], G.getGenerationalSets())
 
     def testCheckStraighShot(self):
         

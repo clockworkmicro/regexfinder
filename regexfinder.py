@@ -936,7 +936,7 @@ class GRAPH:
         toReturn = [[] for _ in range(maxDepth)]
         for element in generationMarkedNodes:
             place = element[1]-1
-            toReturn[place].append(element)
+            toReturn[place].append(element[0])
         
         return toReturn
 
@@ -2106,7 +2106,7 @@ class GRAPH:
             
             for i in range(len(generationalSets)):
                 testGraph = self.deepCopy()
-                nodeIdList = [element[0] for element in generationalSets[i]]
+                nodeIdList = [element for element in generationalSets[i]]
                 if len(nodeIdList) > 1:
                     if not self.willNgraphAppear(nodeIdList):
                         testGraph.mergeNodeIds(nodeIdList)
@@ -2125,7 +2125,7 @@ class GRAPH:
             
             if graphToMergePos != -99:
                 if setToMerge == "GS":
-                    self.mergeNodeIds([element[0] for element in generationalSets[graphToMergePos]])
+                    self.mergeNodeIds([element for element in generationalSets[graphToMergePos]])
                 elif setToMerge == 'SGL':
                     self.mergeNodeIds([key for key in subGraphList[graphToMergePos].nodes])
                 else:
@@ -2135,7 +2135,7 @@ class GRAPH:
         
     def squishAllGenerationSets(self):
         for genSet in self.getGenerationalSets():
-            self.mergeNodeIds([element[0] for element in genSet])
+            self.mergeNodeIds([element for element in genSet])
                 
 
     def partition(self):
