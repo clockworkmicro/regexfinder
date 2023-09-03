@@ -1596,11 +1596,15 @@ class GRAPH:
         '''      
 
         tempList = nodeList.copy()
-        for currNode in tempList: # Removing all nodes that are directly related to each other
-            currNodeDescendants = self.getNodeDescendants(currNode)
+        toRemove = set()
+        for i in range(len(tempList)): # Removing all nodes that are directly related to each other
+            currNodeDescendants = self.getNodeDescendants(tempList[i])
             for kid in currNodeDescendants:
                 if kid in tempList:
-                    tempList.remove(kid)
+                    toRemove.add(kid)
+        
+        for item in toRemove:
+            tempList.remove(item)
 
         totalParents = []
         for node in tempList:
@@ -1608,6 +1612,7 @@ class GRAPH:
             if parentList:
                 totalParents.extend(parentList)
 
+        totalParents = list(set(totalParents))
         if len(totalParents)>1:
             for currNode in tempList:
                 currNodeParents = self.getParents(currNode)
@@ -1615,13 +1620,15 @@ class GRAPH:
                     for parent in currNodeParents:
                         parentsChildren = self.getChildren(parent)
                         if len(parentsChildren)>1:
-                            if not set(parentsChildren).issubset(tempList):
-                                for kid in parentsChildren:
-                                    result = self.checkAlternatePath(kid, currNode, 0)
-                                    if not result:
-                                        # If there are no other alternate pathes, it is not a straight shot
-                                        return True
+                            if not set(parentsChildren).issubset(set(tempList)):
+                                # for kid in parentsChildren:
+                                result = self.checkAlternatePath(parent, currNode, 0)
+                                if not result:
+                                    # If there are no other alternate pathes, it is not a straight shot
+                                    return True
         return False
+        
+        # return self.checkAlternatePathMultiNodes(self.getNodesNoParents(), nodeList, 0)
 
     def willStraightShotAppear(self, nodeList:list[str]):
         """Checks to see if the nodes will create a straight shot if merged
@@ -1992,24 +1999,27 @@ class GRAPH:
         
         # regex = '([ab][ab])|(c[abd])|([abc]d)' creates an N-Graph because of one of the combinations. 
         # Must have to do with merging across graphs, or not sharing any ancestors
+        generationSets = self.getGenerationalSets()
         if len(topNodes) > 1:
             if topNodes not in subGraphList:
                 subGraphList.append(self.createSubGraph(topNodes))
             if len(topNodes) > 2:
-                for i in range (2, len(topNodes)):
-                    topNodeCombs = list(combinations(topNodes, i))
-                    for nodeComb in topNodeCombs:
-                        topCombGraph = self.createSubGraph(list(nodeComb))
-                        subGraphList.append(topCombGraph)
+                if len(generationSets[1]) < 2:
+                    for i in range (2, len(topNodes)):
+                        topNodeCombs = list(combinations(topNodes, i))
+                        for nodeComb in topNodeCombs:
+                            topCombGraph = self.createSubGraph(list(nodeComb))
+                            subGraphList.append(topCombGraph)
         if len(bottomNodes) > 1:
             if bottomNodes not in subGraphList:
                 subGraphList.append(self.createSubGraph(bottomNodes))
             if len(bottomNodes) > 2:
-                for i in range (2, len(bottomNodes)):
-                    bottomNodeCombs = list(combinations(bottomNodes, i))
-                    for nodeComb in bottomNodeCombs:
-                        bottomCombGraph = self.createSubGraph(list(nodeComb))
-                        subGraphList.append(bottomCombGraph)
+                if len(generationSets[len(generationSets)-2]) == 1:
+                    for i in range (2, len(bottomNodes)):
+                        bottomNodeCombs = list(combinations(bottomNodes, i))
+                        for nodeComb in bottomNodeCombs:
+                            bottomCombGraph = self.createSubGraph(list(nodeComb))
+                            subGraphList.append(bottomCombGraph)
             
         if stichSubGraphs and isinstance(subGraphList, list):
             for i in range(len(subGraphList)-1):
@@ -2094,7 +2104,7 @@ class GRAPH:
                 testGraph = self.deepCopy()
                 keyList = [key for key in subGraphList[i].nodes]
                 if not self.willNgraphAppear(keyList):
-                    # print(keyList)
+                    print(keyList)
                     testGraph.mergeNodeIds(keyList)
                     # '0 <' Because work needs to be done with node cardinality
                     # The 'everything merge' returns a negative cardinality on normal to big regexes
@@ -2357,7 +2367,7 @@ class GRAPH:
                 else:
                     results.append(True)
                     continue
-            results.append(self.checkAlternatePathMultiNodesUpStream(child, nodeInQuestion, recursionDepth+1))
+            results.append(self.checkAlternatePathMultiNodesUpStream([child], nodeInQuestion, recursionDepth+1))
         
         trueCheck = -1
         for result in results:
@@ -2393,7 +2403,7 @@ class GRAPH:
                 else:
                     results.append(True)
                     continue
-            results.append(self.checkAlternatePathMultiNodes(child, nodesInQuestion, recursionDepth+1))
+            results.append(self.checkAlternatePathMultiNodes([child], nodesInQuestion, recursionDepth+1))
         
         trueCheck = -1
         for result in results:
