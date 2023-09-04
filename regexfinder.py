@@ -2155,17 +2155,16 @@ class GRAPH:
         Raises:
             Exception: Method will not run if an N-graph is present
         """
+        self.simplify()
                 
         if self.doesNgraphExist:
             raise Exception("Graph is invalid, cointains N-graph")
 
         self.removeStraightShots()
-        self.simplify()
         
         if len(self.nodes) == 1:
             self.sequentialGraphs = self.parallelGraphs = None
             return
-
         else:
             self.parallelPartition()
             if self.parallelGraphs:  # is not none
@@ -2187,23 +2186,71 @@ class GRAPH:
             self.sequentialGraphs = None
         return
     
+    # def parallelPartition(self):
+    #     """Partitions the graph in a parallel manner if parallelGraphs are present
+    #     """        
+    #     sharedDescendantSets = self.getSharedDecendantSets()
+
+    #     parallel = []
+    #     for s in sharedDescendantSets:
+
+    #         nodes = set(s)
+    #         for node in s:
+    #             for descendant in self.getNodeDescendants(node):
+    #                 nodes.add(descendant)
+    #         parallel.append(nodes)
+    #     if len(parallel) == 1:
+    #         self.parallelGraphs = None
+    #     else:
+    #         self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
+            
     def parallelPartition(self):
-        """Partitions the graph in a parallel manner if parallelGraphs are present
-        """        
-        sharedDescendantSets = self.getSharedDecendantSets()
-
-        parallel = []
-        for s in sharedDescendantSets:
-
-            nodes = set(s)
-            for node in s:
-                for descendant in self.getNodeDescendants(node):
-                    nodes.add(descendant)
-            parallel.append(nodes)
-        if len(parallel) == 1:
+        
+        topNodes = self.getNodesNoParents()
+        
+        if len(topNodes) == 1:
             self.parallelGraphs = None
         else:
-            self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
+            nodeDescendantsList = []
+            for node in topNodes:
+                nodeDescendantsList.append((self.getNodeDescendants(node), node))
+            
+            parallelGraphNodes = []
+            while len(nodeDescendantsList) > 1:
+                parGraphNodes = set()
+                posToRemove = [0]
+                for currPos in range(len(nodeDescendantsList)-1):
+                    descIntersection = set(nodeDescendantsList[0][0]).intersection(set(nodeDescendantsList[currPos+1][0]))
+                    if descIntersection:
+                        descUnion = set(nodeDescendantsList[0][0]).union(set(nodeDescendantsList[currPos+1][0]))
+                        parGraphNodes.update(descUnion)
+                        parGraphNodes.add(nodeDescendantsList[0][1])
+                        parGraphNodes.add(nodeDescendantsList[currPos+1][1])
+                        posToRemove.append(currPos+1)
+                    
+                if parGraphNodes:
+                    parallelGraphNodes.append(list(parGraphNodes))
+                    posToRemove.reverse()
+                    for pos in posToRemove:
+                        nodeDescendantsList.pop(pos)
+                else:
+                    parallelGraphNodes.append(nodeDescendantsList[0][0])
+                    parallelGraphNodes[len(parallelGraphNodes)-1].extend([nodeDescendantsList[0][1]])
+                    nodeDescendantsList.pop(0)
+            
+            if nodeDescendantsList:
+                while nodeDescendantsList:
+                    parallelGraphNodes.append(nodeDescendantsList[0][0])
+                    parallelGraphNodes[len(parallelGraphNodes)-1].extend([nodeDescendantsList[0][1]])
+                    nodeDescendantsList.pop(0)
+                   
+            if len(parallelGraphNodes) > 1:
+                self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallelGraphNodes]
+            else:
+                self.parallelGraphs = None
+
+        
+        
 
     def reduce(self):
         """Reduces each node in the graph, i.e. abc -> a-c
