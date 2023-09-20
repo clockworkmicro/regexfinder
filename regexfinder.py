@@ -1613,15 +1613,14 @@ class GRAPH:
                 totalParents.extend(parentList)
 
         totalParents = list(set(totalParents))
-        if len(totalParents)>1:
+        if len(totalParents)>1: # If there is more than one share parent among ALL nodes,
             for currNode in tempList:
                 currNodeParents = self.getParents(currNode)
-                if not set(currNodeParents).issubset(set(tempList)):
+                if not set(currNodeParents).issubset(set(tempList)): # If the node's parent's aren't in the nodeList
                     for parent in currNodeParents:
                         parentsChildren = self.getChildren(parent)
                         if len(parentsChildren)>1:
-                            if not set(parentsChildren).issubset(set(tempList)):
-                                # for kid in parentsChildren:
+                            if not set(parentsChildren).issubset(set(tempList)): # If the node's children are not all in the nodeList
                                 result = self.checkAlternatePath(parent, currNode, 0)
                                 if not result:
                                     # If there are no other alternate pathes, it is not a straight shot
@@ -2104,7 +2103,7 @@ class GRAPH:
                 testGraph = self.deepCopy()
                 keyList = [key for key in subGraphList[i].nodes]
                 if not self.willNgraphAppear(keyList):
-                    print(keyList)
+                    # print(keyList)
                     testGraph.mergeNodeIds(keyList)
                     # '0 <' Because work needs to be done with node cardinality
                     # The 'everything merge' returns a negative cardinality on normal to big regexes
@@ -2146,7 +2145,6 @@ class GRAPH:
     def squishAllGenerationSets(self):
         for genSet in self.getGenerationalSets():
             self.mergeNodeIds([element for element in genSet])
-                
 
     def partition(self):
         """Partitions the graph recursively into either sequential or parallel graphs. Should be run after instantiating a graph via regex.
@@ -2185,27 +2183,10 @@ class GRAPH:
         if len(self.sequentialGraphs) == 1:
             self.sequentialGraphs = None
         return
-    
-    # def parallelPartition(self):
-    #     """Partitions the graph in a parallel manner if parallelGraphs are present
-    #     """        
-    #     sharedDescendantSets = self.getSharedDecendantSets()
-
-    #     parallel = []
-    #     for s in sharedDescendantSets:
-
-    #         nodes = set(s)
-    #         for node in s:
-    #             for descendant in self.getNodeDescendants(node):
-    #                 nodes.add(descendant)
-    #         parallel.append(nodes)
-    #     if len(parallel) == 1:
-    #         self.parallelGraphs = None
-    #     else:
-    #         self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallel]
             
     def parallelPartition(self):
-        
+        """Partitions the graph in a parallel manner if parallelGraphs are present
+        """        
         topNodes = self.getNodesNoParents()
         
         if len(topNodes) == 1:
@@ -2248,9 +2229,6 @@ class GRAPH:
                 self.parallelGraphs = [self.createSubGraph(nodeSet) for nodeSet in parallelGraphNodes]
             else:
                 self.parallelGraphs = None
-
-        
-        
 
     def reduce(self):
         """Reduces each node in the graph, i.e. abc -> a-c
@@ -2472,13 +2450,16 @@ class GRAPH:
         for child in self.nodes.keys():
             parentsList = self.getParents(child)
             if len(parentsList) > 1:
-                for parent in parentsList:
-                    childrenList = self.getChildren(parent)
-                    if len(childrenList) > 1: # If the node has multiple parents, and that parent has multiple children
-                            # Check if it's a straight shot (exeption to the multiple children rule)
-                        result = self.checkAlternatePath(parent, child, 0)
-                        if not result:
-                            return True
+                # If every child of every parent all share the same parents e.g. regex=('(a|b|c)(d|e|f)')
+                allChildrenSameParents = all([self.getParents(child) == parentsList for parent in parentsList for child in self.getChildren(parent)])
+                if not allChildrenSameParents:
+                    for parent in parentsList:
+                        childrenList = self.getChildren(parent)
+                        if len(childrenList) > 1: # If the node has multiple parents, and that parent has multiple children
+                                # Check if it's a straight shot (exeption to the multiple children rule)
+                            result = self.checkAlternatePath(parent, child, 0)
+                            if not result:
+                                return True
         return False
 
     @property
