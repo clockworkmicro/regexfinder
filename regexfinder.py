@@ -1668,7 +1668,7 @@ class GRAPH:
         Returns:
             bool: True or False on whether the merge is allowed
         """        
-        return (self.checkGenerationalRelationship(nodeList) and not self.willNgraphAppear(nodeList))
+        return (self.checkGenerationalRelationship(nodeList) and not self.willNgraphAppear(nodeList) and not self.willStraightShotAppear(nodeList))
 
     def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
         """Creates and retuns a NODE object made from a list of node IDs being merged.
@@ -2102,7 +2102,7 @@ class GRAPH:
             for i in range(len(subGraphList)-1):
                 testGraph = self.deepCopy()
                 keyList = [key for key in subGraphList[i].nodes]
-                if not self.willNgraphAppear(keyList):
+                if not self.willNgraphAppear(keyList) and not self.willStraightShotAppear(keyList):
                     # print(keyList)
                     testGraph.mergeNodeIds(keyList)
                     # '0 <' Because work needs to be done with node cardinality
@@ -2117,7 +2117,7 @@ class GRAPH:
                 testGraph = self.deepCopy()
                 nodeIdList = [element for element in generationalSets[i]]
                 if len(nodeIdList) > 1:
-                    if not self.willNgraphAppear(nodeIdList):
+                    if not self.willNgraphAppear(nodeIdList) and not self.willStraightShotAppear(nodeIdList):
                         testGraph.mergeNodeIds(nodeIdList)
                         # '0 <' Because work needs to be done with node cardinality
                         # The 'everything merge' returns a negative cardinality on normal to big regexes maxwrapping
