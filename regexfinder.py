@@ -1,8 +1,6 @@
 import copy
 import random
-from itertools import combinations, chain
-from math import inf
-
+from itertools import combinations
 import more_itertools as mit
 import numpy as np
 import pandas as pd
@@ -291,7 +289,7 @@ class NODE:
 
     def match(self, inString, boolean=False):
         """
-        CHECK
+        Checks for matches of this node's regex(?)
         """
         matches = re.finditer(self.regex, inString)
         if boolean:
@@ -416,7 +414,7 @@ class VECTOR:
 
     @property
     def getndArray(self):
-        """Returns Ndarray
+        """Returns Ndarray representation of this vector
 
         Returns:
             ndarray
@@ -447,9 +445,11 @@ class VECTOR:
 
     @property
     def consecutiveSublists(self):
-        """
-        CHECK
-        """
+        """Returns all consecutive sublists in the vector
+
+        Returns:
+            list: A list of all consecutive subgroups
+        """        
         return [list(group) for group in mit.consecutive_groups(self.support)]
 
     @property
@@ -613,7 +613,7 @@ class WORDCOLLECTION:
 
 class GRAPH:
     def __init__(self, regex:str=None, wordList=None, nodes:dict[str, NODE]=None, edges:list[EDGE]=None, alpha=1):
-        """        CHECK
+        """
         A Graph is a data structure made of nodes and edges. Graphs are built by priority from either a regex,
         a wordlist, or nodes[dictionary]. If a graph is built from a regex, a non-simple node will be
         made and added to the nodes dictionary. Nodes are not required to instantiate a graph object.
@@ -790,12 +790,14 @@ class GRAPH:
         [self.edges.remove(edge) for edge in edgeList]
 
     def removeStraightShots(self):
+        """Removes all edges between node and child that are redundant to a path through nodes,
+        if it exists e.g. a->b, b->c, a->c. a->c is a straight shot.
+        """        
         straightShot = self.doesStraightShotExist
         while straightShot:
             self.edges.remove(straightShot)
             straightShot = self.doesStraightShotExist
             
-
     def getParents(self, id_:str):
         """Returns node ID(s) of the parent(s) of a given node via ID. Returns false if nonexistent.
 
@@ -869,7 +871,7 @@ class GRAPH:
         return [id_ for id_, node in self.nodes.items() if (not node.replaced and not node.simple)]
 
     def simplify(self):
-        """CHECK
+        """
         Simplifies all existing nodes.
         """        
         while self.getNotSimple():
@@ -1294,7 +1296,7 @@ class GRAPH:
 
     def addLayer(self):
         """
-        CHECK
+        CHECK, WordCollection
         """
         if not self.wordCollection:
             raise Exception('addLayer only used when wordCollection is provided')
@@ -1476,9 +1478,11 @@ class GRAPH:
                 self.addEdge(EDGE(previous, child))
 
     def getSharedDecendantSets(self):
-        """
-        CHECK
-        """
+        """Returns a set of all shared descendants for each top node
+
+        Returns:
+            set[tuple[str]]: A set of tuples that contain nodeIds that have shared descendants
+        """        
         noParents = self.getNodesNoParents()
 
         combs = list(combinations(noParents, 2)) # every possible pair made of every node with no parent
@@ -1504,6 +1508,14 @@ class GRAPH:
         return sharedDescendantSets
 
     def areNodesConnected(self, nodeList:list[str]):
+        """Checks to see if there are paths between nodes in a set
+
+        Args:
+            nodeList (list[str]): The set of nodes to be checked for connection
+
+        Returns:
+            bool: True or false depending on if ALL nodes are connected
+        """        
         for node in nodeList:
             loopBreak = False
             for currNode in nodeList:
@@ -1651,7 +1663,9 @@ class GRAPH:
                 if kid not in nodeList:
                     lowerChildren.append(kid)
         
-        results = []    
+        results = []
+        upperParents = list(set(upperParents))
+        lowerChildren = list(set(lowerChildren))
         for parent in upperParents:
             results.append(self.checkAlternatePathMultiNodesQuestion(parent, nodeList, 0))
         for kid in lowerChildren:
@@ -1668,7 +1682,20 @@ class GRAPH:
         Returns:
             bool: True or False on whether the merge is allowed
         """        
-        return (self.checkGenerationalRelationship(nodeList) and not self.willNgraphAppear(nodeList) and not self.willStraightShotAppear(nodeList))
+        genRelationship = self.checkGenerationalRelationship(nodeList)
+        nGraph = self.willNgraphAppear(nodeList)
+        straightShot = self.willStraightShotAppear(nodeList)
+        
+        if genRelationship and not nGraph  and not straightShot:
+            return True
+        else:
+            if not genRelationship:
+                print("Nodes {0} cannot be merged due to generation conflict".format(nodeList))
+            elif nGraph:
+                print("Nodes {0} cannot be merged due to N-graph creation".format(nodeList))
+            elif straightShot:
+                print("Nodes {0} cannot be merged due to straight shot creation".format(nodeList))
+            return False
 
     def createMergedNodes(self, nodeList:list[str], nodeRelationship:str):
         """Creates and retuns a NODE object made from a list of node IDs being merged.
@@ -1885,7 +1912,6 @@ class GRAPH:
         else:
             raise Exception("Sequential and Parallel Graphs do not exist, somehow")
                 
-
     def mergeNodeIds(self, nodeList:list[str]):
         """Given a list of node IDs, Creates a new node merged from each node, and is
         'stiched' into the graph to preserve continuity. NodeList should contain node IDs
@@ -2088,11 +2114,18 @@ class GRAPH:
             raise Exception("subGraphList is not a list or tuple")
 
     def reducePhi(self):
+        """Main method for reducing the overall phi of a graph
+        """        
         returnVal = self.phiReduction()
         while returnVal:
             returnVal = self.phiReduction()
             
     def phiReduction(self):
+        """The method that calculates and reduces phi for a graph. Ran inside 'reducePhi()'
+
+        Returns:
+            bool: True or False depending on if the phi was lowered
+        """        
         subGraphList = self.getValidSubGraphs(stichSubGraphs=True)
         generationalSets = self.getGenerationalSets()
         setToMerge = ''
@@ -2143,6 +2176,8 @@ class GRAPH:
             return graphToMergePos != -99
         
     def squishAllGenerationSets(self):
+        """Method that merges all nodes that are number of steps away from the top nodes into one node
+        """        
         for genSet in self.getGenerationalSets():
             self.mergeNodeIds([element for element in genSet])
 
@@ -2349,13 +2384,16 @@ class GRAPH:
             return False
         else:
             results = []
+            nodeListHit = 0
             for child in self.getChildren(upStreamNode):
                 if child in nodesInQuestion:
                     if recursionDepth:
                         return True
                     else:
-                        results.append(True)
-                        continue
+                        if not nodeListHit:
+                            nodeListHit += 1
+                            results.append(True)
+                            continue
                 results.append(self.checkAlternatePathMultiNodesQuestion(child, nodesInQuestion, recursionDepth+1))
             
             trueCheck = -1
@@ -2383,8 +2421,17 @@ class GRAPH:
         for node in upStreamNodes:
             nodeChildren = self.getChildren(node)
             if nodeChildren:
+                redo = True
+                while redo:
+                    changed = False
+                    for child in nodeChildren:
+                        if child in upStreamNodes:
+                            nodeChildren.remove(child)
+                            changed = True
+                    redo = changed
                 childrenOfUpStream.extend(nodeChildren)
         results = []
+        childrenOfUpStream = list(set(childrenOfUpStream))
         for child in childrenOfUpStream:
             if child == nodeInQuestion:
                 if recursionDepth:
@@ -2419,15 +2466,27 @@ class GRAPH:
         for node in upStreamNodes:
             nodeChildren = self.getChildren(node)
             if nodeChildren:
+                redo = True
+                while redo:
+                    changed = False
+                    for child in nodeChildren:
+                        if child in upStreamNodes:
+                            nodeChildren.remove(child)
+                            changed = True
+                    redo = changed
                 childrenOfUpStream.extend(nodeChildren)
         results = []
+        nodeListHit = 0
+        childrenOfUpStream = list(set(childrenOfUpStream))
         for child in childrenOfUpStream:
             if child in nodesInQuestion:
                 if recursionDepth:
                     return True
                 else:
-                    results.append(True)
-                    continue
+                    if not nodeListHit:
+                        nodeListHit += 1
+                        results.append(True)
+                        continue
             results.append(self.checkAlternatePathMultiNodes([child], nodesInQuestion, recursionDepth+1))
         
         trueCheck = -1

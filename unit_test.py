@@ -542,7 +542,6 @@ class GraphTest(unittest.TestCase):
         g1.mergeRelatedNodes([n2.id_, n3.id_], "parallel")
         self.assertEqual('a[bc]{2,3}d', g1.outRegex)
 
-    def testMultiQuantifierMerge(self):
         regex = '\d{2}([a-m]{2}[n-z]{2}|[A-Z]{4})\d'
         G = GRAPH(regex=regex)
         G.partition()
@@ -1148,6 +1147,27 @@ class GraphTest(unittest.TestCase):
         G = GRAPH(nodes=nodeDict, edges=edgeList)
         
         self.assertTrue(G.willStraightShotAppear([n2.id_, n4.id_]))
+        
+        n1 = NODE('a')
+        n2 = NODE('b')
+        n3 = NODE('c')
+        n4 = NODE('d')
+        n5 = NODE('e')
+        n6 = NODE('f')
+        
+        e1 = EDGE(n1.id_, n2.id_)
+        e2 = EDGE(n1.id_, n3.id_)
+        e3 = EDGE(n2.id_, n6.id_)
+        e4 = EDGE(n3.id_, n4.id_)
+        e5 = EDGE(n3.id_, n5.id_)
+        e6 = EDGE(n4.id_, n6.id_)
+        e7 = EDGE(n5.id_, n6.id_)
+        
+        edgeList = [e1, e2, e3, e4, e5, e6, e7]
+        nodeDict = dict([(n.id_, n) for n in [n1, n2, n3, n4, n5, n6]])
+        G = GRAPH(nodes=nodeDict, edges=edgeList)
+        
+        self.assertFalse(G.willStraightShotAppear([n4.id_, n5.id_]))
 
 if __name__ == '__main__':
     unittest.main()
