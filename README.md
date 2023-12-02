@@ -2,10 +2,11 @@
 
 ## Introduction
 
-Regexfinder is a set of tools to create and manipulate regular expressions. In particular, the package can:
-- determine a regular expression given a set of strings
+Regexfinder is a set of tools to evaluate and manipulate regular expressions. In particular, the package can:
 - optimize a size/complexity tradeoff for a regular expression
 - visualize a regular expression as a graph
+- compute the number of string paths allowed by a regular expression
+- generate random strings satisfying a regular expression
 
 
 ## Size/complexity tradeoff
